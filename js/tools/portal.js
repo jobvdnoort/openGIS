@@ -6,6 +6,7 @@ import esriId from "https://js.arcgis.com/4.29/@arcgis/core/identity/IdentityMan
 export function initializePortalTool(view) {
     const loginBtn = document.getElementById("loginBtn");
     const portalInput = document.getElementById("portalUrlInput");
+    const appIdInput = document.getElementById("appIdInput"); // Nieuw: Koppel het App-ID veld
     const contentPanel = document.getElementById("contentPanel");
     const listContainer = document.getElementById("listContainer");
     const panelTitle = document.getElementById("panelTitle");
@@ -16,20 +17,24 @@ export function initializePortalTool(view) {
 
     loginBtn.addEventListener("click", async () => {
         const portalUrl = portalInput.value.trim();
-        if (!portalUrl) return alert("Vul een URL in.");
+        const appIdValue = appIdInput.value.trim(); // Haal de ingevulde waarde op
+
+        // Check of beide velden zijn ingevuld
+        if (!portalUrl) return alert("Vul een Portaal URL in.");
+        if (!appIdValue) return alert("Vul een geldig App-ID in.");
 
         try {
             loginBtn.innerText = "Inloggen...";
 
-            // Configureer OAuth - Dit zorgt ervoor dat het Esri inlogscherm correct opent
+            // Configureer OAuth met de dynamische waarden uit de invoervelden
             const info = new OAuthInfo({
-                appId: "tWFN7J5I0ItlpKHt", // Voor public portal werkt dit vaak zonder, voor enterprise vereist
+                appId: appIdValue, // Gebruik hier de variabele uit het inputveld
                 portalUrl: portalUrl,
-                popup: true // Open inloggen in een popup venster
+                popup: true,
+                popupCallbackUrl: "https://jobvdnoort.github.io/openGIS/index.html" // Zorg dat deze klopt!
             });
             esriId.registerOAuthInfos([info]);
 
-            // 1. Forceer authenticatie (authMode: immediate)
             currentPortal = new Portal({
                 url: portalUrl,
                 authMode: "immediate" 
@@ -37,17 +42,17 @@ export function initializePortalTool(view) {
 
             await currentPortal.load();
             
-            // 2. Ingelogd! Haal groepen op
             loginBtn.innerText = `Welkom, ${currentPortal.user.username}`;
             loginBtn.disabled = true;
             portalInput.disabled = true;
+            appIdInput.disabled = true; // Zet ook het App-ID veld op slot na inloggen
 
             userGroups = currentPortal.user.groups;
             showGroups();
 
         } catch (error) {
             console.error("Fout bij inloggen:", error);
-            alert("Inloggen geannuleerd of mislukt.");
+            alert("Inloggen geannuleerd of mislukt. Controleer je URL en App-ID.");
             loginBtn.innerText = "Inloggen";
         }
     });
