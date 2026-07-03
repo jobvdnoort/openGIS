@@ -155,7 +155,3 @@ export function initializePortalTool(view) {
         });
     }
 } // Einde van initializePortalTool
-
-        view.map = newWebMap;
-    }
-}
