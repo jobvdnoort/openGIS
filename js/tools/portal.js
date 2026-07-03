@@ -2,58 +2,67 @@ import Portal from "https://js.arcgis.com/4.29/@arcgis/core/portal/Portal.js";
 import WebMap from "https://js.arcgis.com/4.29/@arcgis/core/WebMap.js";
 import OAuthInfo from "https://js.arcgis.com/4.29/@arcgis/core/identity/OAuthInfo.js";
 import esriId from "https://js.arcgis.com/4.29/@arcgis/core/identity/IdentityManager.js";
+import LayerList from "https://js.arcgis.com/4.29/@arcgis/core/widgets/LayerList.js";
 
 export function initializePortalTool(view) {
     const loginBtn = document.getElementById("loginBtn");
     const portalInput = document.getElementById("portalUrlInput");
-    const appIdInput = document.getElementById("appIdInput"); // Nieuw: Koppel het App-ID veld
+    const appIdInput = document.getElementById("appIdInput");
     const contentPanel = document.getElementById("contentPanel");
     const listContainer = document.getElementById("listContainer");
     const panelTitle = document.getElementById("panelTitle");
     const backBtn = document.getElementById("backBtn");
+    
+    // Nieuwe elementen
+    const portalContent = document.getElementById("portalContent");
+    const userAvatar = document.getElementById("userAvatar");
 
     let currentPortal = null;
     let userGroups = [];
 
+    // Zorg dat we het menu kunnen openen/sluiten met de avatar
+    userAvatar.addEventListener("click", () => {
+        if (portalContent.style.display === "none") {
+            portalContent.style.display = "flex";
+        } else {
+            portalContent.style.display = "none";
+        }
+    });
+
     loginBtn.addEventListener("click", async () => {
         const portalUrl = portalInput.value.trim();
-        const appIdValue = appIdInput.value.trim(); // Haal de ingevulde waarde op
+        const appIdValue = appIdInput.value.trim();
 
-        // Check of beide velden zijn ingevuld
-        if (!portalUrl) return alert("Vul een Portaal URL in.");
-        if (!appIdValue) return alert("Vul een geldig App-ID in.");
+        if (!portalUrl || !appIdValue) return alert("Vul URL en App-ID in.");
 
         try {
             loginBtn.innerText = "Inloggen...";
 
-            // Configureer OAuth met de dynamische waarden uit de invoervelden
             const info = new OAuthInfo({
-                appId: appIdValue, // Gebruik hier de variabele uit het inputveld
+                appId: appIdValue,
                 portalUrl: portalUrl,
                 popup: true,
-                popupCallbackUrl: "https://jobvdnoort.github.io/openGIS/index.html" // Zorg dat deze klopt!
+                popupCallbackUrl: "https://jobvdnoort.github.io/openGIS/index.html"
             });
             esriId.registerOAuthInfos([info]);
 
-            currentPortal = new Portal({
-                url: portalUrl,
-                authMode: "immediate" 
-            });
-
+            currentPortal = new Portal({ url: portalUrl, authMode: "immediate" });
             await currentPortal.load();
             
             loginBtn.innerText = `Welkom, ${currentPortal.user.username}`;
             loginBtn.disabled = true;
             portalInput.disabled = true;
-            appIdInput.disabled = true; // Zet ook het App-ID veld op slot na inloggen
+            appIdInput.disabled = true;
 
-            // We vragen het portaal specifiek om alle groepen van deze gebruiker op te halen
+            // Laat de avatar zien zodra we zijn ingelogd!
+            userAvatar.style.display = "block";
+
             userGroups = await currentPortal.user.fetchGroups();
             showGroups();
 
         } catch (error) {
             console.error("Fout bij inloggen:", error);
-            alert("Inloggen geannuleerd of mislukt. Controleer je URL en App-ID.");
+            alert("Inloggen geannuleerd of mislukt.");
             loginBtn.innerText = "Inloggen";
         }
     });
@@ -118,13 +127,34 @@ export function initializePortalTool(view) {
     function renderWebMap(webmapId) {
         console.log(`WebMap laden: ${webmapId}`);
         
-        // CRUCIAAL: Geef het portal-object mee, zodat de app weet dat je rechten hebt!
+        // 1. Klap het zijpaneel dicht
+        portalContent.style.display = "none";
+
+        // 2. Laad de nieuwe kaart
         const newWebMap = new WebMap({
             portalItem: {
                 id: webmapId,
                 portal: currentPortal 
             }
         });
+
+        view.map = newWebMap;
+
+        // 3. Wacht tot de nieuwe kaart geladen is, voeg dan de Kaartlagenlijst toe aan de linkerkant
+        view.when(() => {
+            // Haal eventuele oude widgets (van een vorige kaart) weg
+            view.ui.empty("top-left"); 
+            
+            // Maak de nieuwe lagenlijst widget
+            const layerList = new LayerList({
+                view: view
+            });
+            
+            // Zet hem linksboven, direct onder de Esri zoom-knoppen
+            view.ui.add(layerList, "top-left");
+        });
+    }
+} // Einde van initializePortalTool
 
         view.map = newWebMap;
     }

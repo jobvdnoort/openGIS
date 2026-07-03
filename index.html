@@ -10,15 +10,20 @@
 <body>
 
 <div id="portalContainer">
-       <div class="login-bar" style="flex-direction: column; gap: 8px;">
-            <input type="text" id="portalUrlInput" placeholder="Portaal URL (bijv. https://.../portal)" value="https://gisportal-test.boskalis.com/portal">
-            <input type="text" id="appIdInput" placeholder="App-ID (bijv. oXxSEcZ4TXxuIl62)">
-            <button id="loginBtn">Inloggen</button>
-        </div>
-        <div id="contentPanel" style="display: none;">
-            <h3 id="panelTitle">Mijn Groepen</h3>
-            <button id="backBtn" style="display: none;">&larr; Terug naar groepen</button>
-            <div id="listContainer" class="list-container"></div>
+        <img id="userAvatar" src="https://www.w3schools.com/howto/img_avatar.png" alt="Profiel" style="display: none;">
+        
+        <div id="portalContent">
+            <div class="login-bar" style="flex-direction: column; gap: 8px;">
+                <input type="text" id="portalUrlInput" placeholder="Portaal URL" value="https://gisportal-test.boskalis.com/portal">
+                <input type="text" id="appIdInput" placeholder="App-ID">
+                <button id="loginBtn">Inloggen</button>
+            </div>
+            
+            <div id="contentPanel" style="display: none;">
+                <h3 id="panelTitle">Mijn Groepen</h3>
+                <button id="backBtn" style="display: none;">&larr; Terug naar groepen</button>
+                <div id="listContainer" class="list-container"></div>
+            </div>
         </div>
     </div>
 
