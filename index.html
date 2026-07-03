@@ -4,12 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>OpenGIS Viewer</title>
-    
     <link rel="stylesheet" href="https://js.arcgis.com/4.29/@arcgis/core/assets/esri/themes/light/main.css">
-    
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+
+    <div id="portalContainer">
+        <input type="text" id="portalUrlInput" placeholder="https://gisportal.boskalis.com/portal" value="https://www.arcgis.com">
+        <button id="loginBtn">Verbind met Portaal</button>
+        
+        <select id="webmapSelect" style="display:none;">
+            <option value="">-- Kies een WebMap --</option>
+        </select>
+    </div>
+
     <div id="viewDiv"></div>
 
     <script type="module" src="js/main.js"></script>
