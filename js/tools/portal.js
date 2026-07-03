@@ -1,100 +1,125 @@
-// js/tools/portal.js
 import Portal from "https://js.arcgis.com/4.29/@arcgis/core/portal/Portal.js";
-import PortalQueryParams from "https://js.arcgis.com/4.29/@arcgis/core/portal/PortalQueryParams.js";
+import WebMap from "https://js.arcgis.com/4.29/@arcgis/core/WebMap.js";
+import OAuthInfo from "https://js.arcgis.com/4.29/@arcgis/core/identity/OAuthInfo.js";
+import esriId from "https://js.arcgis.com/4.29/@arcgis/core/identity/IdentityManager.js";
 
 export function initializePortalTool(view) {
     const loginBtn = document.getElementById("loginBtn");
     const portalInput = document.getElementById("portalUrlInput");
-    const webmapSelect = document.getElementById("webmapSelect");
+    const contentPanel = document.getElementById("contentPanel");
+    const listContainer = document.getElementById("listContainer");
+    const panelTitle = document.getElementById("panelTitle");
+    const backBtn = document.getElementById("backBtn");
+
+    let currentPortal = null;
+    let userGroups = [];
 
     loginBtn.addEventListener("click", async () => {
         const portalUrl = portalInput.value.trim();
-        if (!portalUrl) return alert("Vul eerst een geldige Portaal URL in.");
+        if (!portalUrl) return alert("Vul een URL in.");
 
         try {
-            loginBtn.innerText = "Verbinden...";
-            
-            // 1. Maak verbinding met het opgegeven portaal
-            const portal = new Portal({
-                url: portalUrl
+            loginBtn.innerText = "Inloggen...";
+
+            // Configureer OAuth - Dit zorgt ervoor dat het Esri inlogscherm correct opent
+            const info = new OAuthInfo({
+                appId: "VervangDitLaterDoorJeEigenAppIdAlsJeWilt", // Voor public portal werkt dit vaak zonder, voor enterprise vereist
+                portalUrl: portalUrl,
+                popup: true // Open inloggen in een popup venster
+            });
+            esriId.registerOAuthInfos([info]);
+
+            // 1. Forceer authenticatie (authMode: immediate)
+            currentPortal = new Portal({
+                url: portalUrl,
+                authMode: "immediate" 
             });
 
-            // authMode: "immediate" of "auto" triggert het Esri inlogscherm (OAuth2 Pop-up)
-            await portal.load();
+            await currentPortal.load();
+            
+            // 2. Ingelogd! Haal groepen op
+            loginBtn.innerText = `Welkom, ${currentPortal.user.username}`;
+            loginBtn.disabled = true;
+            portalInput.disabled = true;
 
-            console.log(`Succesvol verbonden met: ${portal.name}`);
-            alert(`Ingelogd als: ${portal.user ? portal.user.username : "Anonieme gebruiker"}`);
-            
-            loginBtn.innerText = "Verbonden!";
-            
-            // 2. Haal de WebMaps van deze gebruiker/dit portaal op
-            fetchUserWebMaps(portal, webmapSelect, view);
+            userGroups = currentPortal.user.groups;
+            showGroups();
 
         } catch (error) {
-            console.error("Inloggen mislukt:", error);
-            alert("Kon geen verbinding maken met dit portaal. Controleer de URL of je inloggegevens.");
-            loginBtn.innerText = "Verbind met Portaal";
+            console.error("Fout bij inloggen:", error);
+            alert("Inloggen geannuleerd of mislukt.");
+            loginBtn.innerText = "Inloggen";
         }
     });
-}
 
-// Functie om te zoeken naar WebMaps binnen het portaal
-async function fetchUserWebMaps(portal, selectElement, view) {
-    // We zoeken naar items van het type "Web Map"
-    const queryParams = new PortalQueryParams({
-        query: `type:"Web Map"`,
-        num: 10 // We halen er eerst maximaal 10 op ter demonstratie
-    });
+    // --- NAVIGATIE FUNCTIES --- //
 
-    try {
-        // Als de gebruiker is ingelogd, zoeken we binnen hun eigen content/organisatie
-        const results = await portal.queryItems(queryParams);
-        
-        // Maak het dropdown menu leeg (behalve de eerste optie)
-        selectElement.innerHTML = '<option value="">-- Kies een WebMap --</option>';
+    function showGroups() {
+        contentPanel.style.display = "block";
+        panelTitle.innerText = "Mijn Groepen";
+        backBtn.style.display = "none";
+        listContainer.innerHTML = ""; // Maak lijst leeg
 
-        if (results.results.length === 0) {
-            alert("Geen WebMaps gevonden in dit portaal.");
+        if (!userGroups || userGroups.length === 0) {
+            listContainer.innerHTML = "<p>Je zit in geen enkele groep.</p>";
             return;
         }
 
-        // Vul de dropdown met de gevonden kaarten
-        results.results.forEach(item => {
-            const option = document.createElement("option");
-            option.value = item.id; // Het unieke Esri ID van de WebMap
-            option.innerText = item.title;
-            selectElement.appendChild(option);
+        userGroups.forEach(group => {
+            const div = document.createElement("div");
+            div.className = "list-item";
+            div.innerText = group.title;
+            div.onclick = () => loadMapsFromGroup(group);
+            listContainer.appendChild(div);
         });
+    }
 
-        // Toon het dropdown menu op het scherm
-        selectElement.style.display = "inline-block";
+    async function loadMapsFromGroup(group) {
+        panelTitle.innerText = `Laden...`;
+        listContainer.innerHTML = "";
+        backBtn.style.display = "inline-block";
+        
+        backBtn.onclick = showGroups; // Terugknop actie
 
-        // Luister of de gebruiker een kaart kiest uit de lijst
-        selectElement.addEventListener("change", (e) => {
-            const webmapId = e.target.value;
-            if (webmapId) {
-                loadWebMapIntoView(webmapId, view);
+        try {
+            // Zoek alleen naar WebMaps binnen deze specifieke groep
+            const result = await group.queryItems({
+                query: `type:"Web Map"`,
+                num: 20
+            });
+
+            panelTitle.innerText = `Kaarten in: ${group.title}`;
+
+            if (result.results.length === 0) {
+                listContainer.innerHTML = "<p>Geen WebMaps in deze groep.</p>";
+                return;
+            }
+
+            result.results.forEach(item => {
+                const div = document.createElement("div");
+                div.className = "list-item";
+                div.innerHTML = `<strong>${item.title}</strong><br><small style="color:gray;">Eigenaar: ${item.owner}</small>`;
+                div.onclick = () => renderWebMap(item.id);
+                listContainer.appendChild(div);
+            });
+
+        } catch (error) {
+            console.error("Fout bij ophalen kaarten:", error);
+            listContainer.innerHTML = "<p>Fout bij laden kaarten.</p>";
+        }
+    }
+
+    function renderWebMap(webmapId) {
+        console.log(`WebMap laden: ${webmapId}`);
+        
+        // CRUCIAAL: Geef het portal-object mee, zodat de app weet dat je rechten hebt!
+        const newWebMap = new WebMap({
+            portalItem: {
+                id: webmapId,
+                portal: currentPortal 
             }
         });
 
-    } catch (err) {
-        console.error("Fout bij ophalen WebMaps:", err);
+        view.map = newWebMap;
     }
-}
-
-// Functie om de gekozen WebMap daadwerkelijk in te laden in de viewer
-import WebMap from "https://js.arcgis.com/4.29/@arcgis/core/WebMap.js";
-
-function loadWebMapIntoView(webmapId, view) {
-    console.log(`Laden van WebMap ID: ${webmapId}`);
-    
-    // Maak een nieuwe WebMap instantie op basis van het ID
-    const newWebMap = new WebMap({
-        portalItem: {
-            id: webmapId
-        }
-    });
-
-    // Vervang de huidige kaart in de view door de nieuwe WebMap
-    view.map = newWebMap;
 }
