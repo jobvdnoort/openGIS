@@ -9,13 +9,17 @@
 </head>
 <body>
 
-    <div id="portalContainer">
-        <input type="text" id="portalUrlInput" placeholder="https://gisportal.boskalis.com/portal" value="https://www.arcgis.com">
-        <button id="loginBtn">Verbind met Portaal</button>
+<div id="portalContainer">
+        <div class="login-bar">
+            <input type="text" id="portalUrlInput" placeholder="https://gisportal.boskalis.com/portal" value="https://www.arcgis.com">
+            <button id="loginBtn">Inloggen</button>
+        </div>
         
-        <select id="webmapSelect" style="display:none;">
-            <option value="">-- Kies een WebMap --</option>
-        </select>
+        <div id="contentPanel" style="display: none;">
+            <h3 id="panelTitle">Mijn Groepen</h3>
+            <button id="backBtn" style="display: none;">&larr; Terug naar groepen</button>
+            <div id="listContainer" class="list-container"></div>
+        </div>
     </div>
 
     <div id="viewDiv"></div>
