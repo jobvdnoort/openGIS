@@ -47,7 +47,8 @@ export function initializePortalTool(view) {
             portalInput.disabled = true;
             appIdInput.disabled = true; // Zet ook het App-ID veld op slot na inloggen
 
-            userGroups = currentPortal.user.groups;
+            // We vragen het portaal specifiek om alle groepen van deze gebruiker op te halen
+            userGroups = await currentPortal.user.fetchGroups();
             showGroups();
 
         } catch (error) {
