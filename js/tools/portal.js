@@ -5,29 +5,55 @@ import esriId from "https://js.arcgis.com/4.29/@arcgis/core/identity/IdentityMan
 import LayerList from "https://js.arcgis.com/4.29/@arcgis/core/widgets/LayerList.js";
 
 export function initializePortalTool(view) {
+    // UI Elementen ophalen
+    const loginPanel = document.getElementById("loginPanel");
     const loginBtn = document.getElementById("loginBtn");
     const portalInput = document.getElementById("portalUrlInput");
     const appIdInput = document.getElementById("appIdInput");
-    const contentPanel = document.getElementById("contentPanel");
+    
+    const profileWidget = document.getElementById("profileWidget");
+    const userAvatar = document.getElementById("userAvatar");
+    const profileDropdown = document.getElementById("profileDropdown");
+    const userNameDisplay = document.getElementById("userNameDisplay");
+    const activeMapDisplay = document.getElementById("activeMapDisplay");
+    const logoutBtn = document.getElementById("logoutBtn");
+    const openWebmapBtn = document.getElementById("openWebmapBtn");
+
+    const webmapModalOverlay = document.getElementById("webmapModalOverlay");
+    const closeModalBtn = document.getElementById("closeModalBtn");
     const listContainer = document.getElementById("listContainer");
     const panelTitle = document.getElementById("panelTitle");
     const backBtn = document.getElementById("backBtn");
-    
-    // Nieuwe elementen
-    const portalContent = document.getElementById("portalContent");
-    const userAvatar = document.getElementById("userAvatar");
 
     let currentPortal = null;
     let userGroups = [];
 
-    // Zorg dat we het menu kunnen openen/sluiten met de avatar
+    // --- INTERFACE KLIK ACTIES ---
+
+    // Avatar bolletje open/dicht
     userAvatar.addEventListener("click", () => {
-        if (portalContent.style.display === "none") {
-            portalContent.style.display = "flex";
-        } else {
-            portalContent.style.display = "none";
-        }
+        profileDropdown.style.display = profileDropdown.style.display === "none" ? "block" : "none";
     });
+
+    // "Open WebMap..." knop in dropdown
+    openWebmapBtn.addEventListener("click", () => {
+        profileDropdown.style.display = "none"; // sluit dropdown
+        webmapModalOverlay.style.display = "block"; // open grote pop-up
+        showGroups(); // laad groepen
+    });
+
+    // Sluit (X) knop in de pop-up
+    closeModalBtn.addEventListener("click", () => {
+        webmapModalOverlay.style.display = "none";
+    });
+
+    // Log Uit knop
+    logoutBtn.addEventListener("click", () => {
+        esriId.destroyCredentials(); // Verwijder de Esri tokens
+        window.location.reload(); // Herlaad de pagina om de kaart te resetten
+    });
+
+    // --- INLOG LOGICA ---
 
     loginBtn.addEventListener("click", async () => {
         const portalUrl = portalInput.value.trim();
@@ -49,16 +75,12 @@ export function initializePortalTool(view) {
             currentPortal = new Portal({ url: portalUrl, authMode: "immediate" });
             await currentPortal.load();
             
-            loginBtn.innerText = `Welkom, ${currentPortal.user.username}`;
-            loginBtn.disabled = true;
-            portalInput.disabled = true;
-            appIdInput.disabled = true;
-
-            // Laat de avatar zien zodra we zijn ingelogd!
-            userAvatar.style.display = "block";
+            // Inloggen gelukt!
+            loginPanel.style.display = "none"; // Verberg inlogblok
+            profileWidget.style.display = "block"; // Toon Avatar
+            userNameDisplay.innerText = currentPortal.user.fullName || currentPortal.user.username;
 
             userGroups = await currentPortal.user.fetchGroups();
-            showGroups();
 
         } catch (error) {
             console.error("Fout bij inloggen:", error);
@@ -67,13 +89,12 @@ export function initializePortalTool(view) {
         }
     });
 
-    // --- NAVIGATIE FUNCTIES --- //
+    // --- WEBMAP KIEZER LOGICA ---
 
     function showGroups() {
-        contentPanel.style.display = "block";
         panelTitle.innerText = "Mijn Groepen";
         backBtn.style.display = "none";
-        listContainer.innerHTML = ""; // Maak lijst leeg
+        listContainer.innerHTML = ""; 
 
         if (!userGroups || userGroups.length === 0) {
             listContainer.innerHTML = "<p>Je zit in geen enkele groep.</p>";
@@ -93,16 +114,10 @@ export function initializePortalTool(view) {
         panelTitle.innerText = `Laden...`;
         listContainer.innerHTML = "";
         backBtn.style.display = "inline-block";
-        
-        backBtn.onclick = showGroups; // Terugknop actie
+        backBtn.onclick = showGroups; 
 
         try {
-            // Zoek alleen naar WebMaps binnen deze specifieke groep
-            const result = await group.queryItems({
-                query: `type:"Web Map"`,
-                num: 20
-            });
-
+            const result = await group.queryItems({ query: `type:"Web Map"`, num: 20 });
             panelTitle.innerText = `Kaarten in: ${group.title}`;
 
             if (result.results.length === 0) {
@@ -114,7 +129,7 @@ export function initializePortalTool(view) {
                 const div = document.createElement("div");
                 div.className = "list-item";
                 div.innerHTML = `<strong>${item.title}</strong><br><small style="color:gray;">Eigenaar: ${item.owner}</small>`;
-                div.onclick = () => renderWebMap(item.id);
+                div.onclick = () => renderWebMap(item.id, item.title); // Geef ook de titel mee!
                 listContainer.appendChild(div);
             });
 
@@ -124,34 +139,26 @@ export function initializePortalTool(view) {
         }
     }
 
-    function renderWebMap(webmapId) {
+    function renderWebMap(webmapId, mapTitle) {
         console.log(`WebMap laden: ${webmapId}`);
         
-        // 1. Klap het zijpaneel dicht
-        portalContent.style.display = "none";
+        // 1. Verberg de Modal Pop-up
+        webmapModalOverlay.style.display = "none";
+        
+        // 2. Update de tekst in het dropdown menu met de nieuwe kaartnaam
+        activeMapDisplay.innerText = mapTitle;
 
-        // 2. Laad de nieuwe kaart
+        // 3. Laad de nieuwe kaart
         const newWebMap = new WebMap({
-            portalItem: {
-                id: webmapId,
-                portal: currentPortal 
-            }
+            portalItem: { id: webmapId, portal: currentPortal }
         });
-
         view.map = newWebMap;
 
-        // 3. Wacht tot de nieuwe kaart geladen is, voeg dan de Kaartlagenlijst toe aan de linkerkant
+        // 4. Voeg de Kaartlagenlijst toe aan de linkerkant
         view.when(() => {
-            // Haal eventuele oude widgets (van een vorige kaart) weg
             view.ui.empty("top-left"); 
-            
-            // Maak de nieuwe lagenlijst widget
-            const layerList = new LayerList({
-                view: view
-            });
-            
-            // Zet hem linksboven, direct onder de Esri zoom-knoppen
+            const layerList = new LayerList({ view: view });
             view.ui.add(layerList, "top-left");
         });
     }
-} // Einde van initializePortalTool
+}
