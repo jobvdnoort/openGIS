@@ -23,7 +23,7 @@ export function initializePortalTool(view) {
 
             // Configureer OAuth - Dit zorgt ervoor dat het Esri inlogscherm correct opent
             const info = new OAuthInfo({
-                appId: "VervangDitLaterDoorJeEigenAppIdAlsJeWilt", // Voor public portal werkt dit vaak zonder, voor enterprise vereist
+                appId: "tWFN7J5I0ItlpKHt", // Voor public portal werkt dit vaak zonder, voor enterprise vereist
                 portalUrl: portalUrl,
                 popup: true // Open inloggen in een popup venster
             });
