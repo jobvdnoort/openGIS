@@ -259,44 +259,62 @@ hr {
     background-color: #004a7c; 
     transform: scale(1.05);
 }
-/* --- Zwevende Toolbar Onderin --- */
-.bottom-toolbar {
+/* --- Basis styling voor alle nieuwe zwevende panelen --- */
+.custom-panel {
     position: absolute;
-    bottom: 85px; /* Zweeft net boven de tools knop */
-    left: 50%;
-    transform: translateX(-50%); /* Zorgt dat hij perfect in het midden staat */
     background: white;
-    padding: 10px 15px;
+    padding: 15px;
     border-radius: 8px;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-    display: flex;
-    gap: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     z-index: 50;
+    font-family: sans-serif;
 }
 
-.toolbar-btn {
-    padding: 8px 16px;
-    background: #f4f4f9;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    cursor: pointer;
-    font-size: 14px;
-    font-weight: bold;
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 2px solid #005e9e;
+    padding-bottom: 5px;
+    margin-bottom: 10px;
+}
+
+.panel-header h4 {
+    margin: 0;
     color: #333;
-    transition: all 0.2s;
 }
 
-.toolbar-btn:hover { 
-    background: #e0e0e0; 
+.close-icon-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #666;
+    cursor: pointer;
+    line-height: 1;
 }
 
-/* Speciale stijl voor de Clear knop */
-.clear-btn { 
-    background: #ffebeb; 
-    color: #d32f2f; 
-    border-color: #ffcdd2; 
+.close-icon-btn:hover {
+    color: #d32f2f;
 }
 
-.clear-btn:hover { 
-    background: #ffcdd2; 
+/* --- Positie van het Tools Menu --- */
+.tools-menu {
+    bottom: 80px; /* Zweeft net boven de Tools-knop */
+    right: 25px;
+    width: 200px;
+}
+
+/* --- Positie van het Widget Paneel (midden onderin) --- */
+.custom-widget-panel {
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%); /* Zorgt voor perfecte centrering */
+    width: 280px;
+}
+
+/* Zorg dat de ArcGIS widget netjes in ons bakje past */
+#widgetContainer .esri-widget {
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
 }

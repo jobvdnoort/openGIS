@@ -1,50 +1,54 @@
 import DistanceMeasurement2D from "https://js.arcgis.com/4.29/@arcgis/core/widgets/DistanceMeasurement2D.js";
 
 export function setupMeasurementTool(view) {
+    // Knoppen en panelen ophalen
     const toolsToggleBtn = document.getElementById("toolsToggleBtn");
-    const bottomToolbar = document.getElementById("bottomToolbar");
+    const toolsMenu = document.getElementById("toolsMenu");
     const measureBtn = document.getElementById("measureBtn");
-    const clearMeasureBtn = document.getElementById("clearMeasureBtn");
+
+    const customWidgetPanel = document.getElementById("customWidgetPanel");
+    const widgetContainer = document.getElementById("widgetContainer");
+    const closeWidgetBtn = document.getElementById("closeWidgetBtn");
 
     let measurementWidget = null;
 
-    // 1. Open of sluit de toolbar als je op 'Tools' klikt
+    // 1. Open of sluit het Tools menu
     toolsToggleBtn.addEventListener("click", () => {
-        bottomToolbar.style.display = bottomToolbar.style.display === "none" ? "flex" : "none";
+        toolsMenu.style.display = toolsMenu.style.display === "none" ? "block" : "none";
     });
 
-    // 2. Start de meting als je op 'Measure' klikt
+    // 2. Start meten als je in het menu op "Meten (Afstand)" klikt
     measureBtn.addEventListener("click", () => {
-        // Zorg dat we niet dubbel tekenen als je vaker op de knop klikt
+        // Menu weer netjes dichtklappen
+        toolsMenu.style.display = "none";
+
+        // Ruim oude metingen op als je de knop per ongeluk twee keer indrukt
         if (measurementWidget) {
             measurementWidget.destroy();
         }
 
-        // Activeer de ArcGIS Meet-Widget
+        // Maak het meet-paneel zichtbaar
+        customWidgetPanel.style.display = "block";
+
+        // Activeer de ArcGIS Meet-Widget en wijs hem toe aan ONS eigen HTML element (container)
         measurementWidget = new DistanceMeasurement2D({
             view: view,
-            unit: "meters"
+            unit: "meters",
+            container: widgetContainer // De truc waardoor hij er mooi uitziet!
         });
 
-        // Voeg de UI van de widget linksonder toe (zodat hij niet over je Tools-knop valt)
-        view.ui.add(measurementWidget, "bottom-left");
-        
         // Start het tekenen onmiddellijk
         measurementWidget.viewModel.start();
-
-        // Laat de Clear-knop in jouw toolbar zien
-        clearMeasureBtn.style.display = "inline-block";
     });
 
-    // 3. Wis alles als je op 'Clear measurement' klikt
-    clearMeasureBtn.addEventListener("click", () => {
+    // 3. Wis alles als je op het kruisje (X) klikt
+    closeWidgetBtn.addEventListener("click", () => {
         if (measurementWidget) {
             measurementWidget.viewModel.clear(); // Verwijdert de lijn
-            view.ui.remove(measurementWidget);   // Verwijdert het venstertje
-            measurementWidget.destroy();         // Ruimt het geheugen op
+            measurementWidget.destroy();         // Ruimt de widget op
             measurementWidget = null;
         }
-        // Verberg de clear-knop weer
-        clearMeasureBtn.style.display = "none";
+        // Verberg het paneel weer
+        customWidgetPanel.style.display = "none";
     });
 }

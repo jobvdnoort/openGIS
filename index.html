@@ -91,16 +91,26 @@
     </div>
 
     <div id="viewDiv"></div>
+
     <button id="toolsToggleBtn" class="floating-tools-btn">Tools</button>
     
-    <div id="bottomToolbar" class="bottom-toolbar" style="display: none;">
-        <button id="measureBtn" class="toolbar-btn">📏 Measure</button>
-        <button id="clearMeasureBtn" class="toolbar-btn clear-btn" style="display: none;">✖ Clear measurement</button>
+    <div id="toolsMenu" class="custom-panel tools-menu" style="display: none;">
+        <div class="panel-header">
+            <h4>Tools</h4>
+        </div>
+        <div class="list-container" style="margin-top: 0;">
+            <div class="list-item" id="measureBtn">📏 Meten (Afstand)</div>
+            </div>
     </div>
 
+    <div id="customWidgetPanel" class="custom-panel custom-widget-panel" style="display: none;">
+        <div class="panel-header">
+            <h4 id="widgetTitle">📏 Meten</h4>
+            <button id="closeWidgetBtn" class="close-icon-btn">&times;</button> 
+        </div>
+        <div id="widgetContainer"></div>
+    </div>
 
     <script type="module" src="js/main.js"></script>
-
 </body>
-
 </html>
