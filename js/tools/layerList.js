@@ -8,10 +8,19 @@ export function buildBeautifulLayerList(view) {
 
         view.map.when(async () => {
             
-            // Onze slimme functie die mappenstructuren kan bouwen
+            // Onze recursieve functie om mappenstructuren te bouwen
             async function createLayerNode(layer, parentContainer) {
-                // Wacht tot de gegevens van deze specifieke laag binnen zijn (cruciaal voor sub-lagen)
-                await layer.load();
+                if (!layer) return;
+
+                // DE FIX: Alleen .load() aanroepen als de laag deze methode daadwerkelijk heeft (sublayers hebben dit niet!)
+                if (layer && typeof layer.load === "function") {
+                    try {
+                        await layer.load();
+                    } catch (error) {
+                        console.error(`Fout bij het laden van laag ${layer.title || 'Naamloos'}:`, error);
+                        // We gaan gewoon door zodat andere lagen niet blokkeren
+                    }
+                }
 
                 const wrapper = document.createElement("div");
                 wrapper.className = "layer-wrapper";
@@ -42,13 +51,12 @@ export function buildBeautifulLayerList(view) {
                     chevronBtn.addEventListener("click", () => {
                         const isExpanded = childrenContainer.style.display === "block";
                         childrenContainer.style.display = isExpanded ? "none" : "block";
-                        // Draai het pijltje 90 graden als hij open gaat
                         chevronBtn.style.transform = isExpanded ? "rotate(0deg)" : "rotate(90deg)";
                     });
 
                     titleBox.appendChild(chevronBtn);
                 } else {
-                    // Geen kinderen? Voeg een onzichtbaar blokje toe zodat de tekst netjes uitlijnt met de rest
+                    // Geen kinderen? Voeg lege ruimte toe voor nette uitlijning van de tekst
                     const spacer = document.createElement("div");
                     spacer.className = "chevron-spacer";
                     titleBox.appendChild(spacer);
@@ -82,22 +90,28 @@ export function buildBeautifulLayerList(view) {
                 itemDiv.appendChild(eyeBtn);
                 wrapper.appendChild(itemDiv);
                 
-                // Als er sub-lagen zijn, voeg die container toe en vul hem (door deze functie opnieuw aan te roepen!)
+                // Als er sub-lagen zijn, roep deze functie recursief aan voor de kinderen
                 if (hasChildren) {
                     wrapper.appendChild(childrenContainer);
+                    // Zorg dat we er altijd een array van maken (ongeacht of het een Esri Collection of Array is)
                     const subArray = sublayers.toArray ? sublayers.toArray() : sublayers;
                     for (const subLayer of subArray) {
                         await createLayerNode(subLayer, childrenContainer);
                     }
                 }
 
-                // GIS-standaard: Prepend zodat de bovenste maplaag ook bovenaan in je lijst verschijnt
+                // GIS-standaard: zet de bovenste kaartlaag ook bovenaan in je HTML lijst
                 parentContainer.prepend(wrapper);
             }
 
-            // Loop door alle hoofd-lagen in de map en start het bouwen
-            for (const mainLayer of view.map.layers.toArray()) {
-                await createLayerNode(mainLayer, listContainer);
+            // Loop door alle hoofdlagen in de WebMap met een try-catch veilgheidsnet
+            const mainLayers = view.map.layers.toArray();
+            for (const mainLayer of mainLayers) {
+                try {
+                    await createLayerNode(mainLayer, listContainer);
+                } catch (err) {
+                    console.error("Fout bij het toevoegen van hoofdlaag aan de UI:", mainLayer.title, err);
+                }
             }
         });
     });
