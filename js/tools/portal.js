@@ -29,7 +29,7 @@ export function initializePortalTool(view) {
     let userGroups = [];
 
     // --- 1. GEHEUGEN OPHALEN ---
-    const savedPortalUrl = localStorage.getItem("openGis_portalUrl") || "https://gisportal-test.boskalis.com/portal";
+    const savedPortalUrl = localStorage.getItem("openGis_portalUrl") || "";
     const savedAppId = localStorage.getItem("openGis_appId") || "";
 
     portalInput.value = savedPortalUrl;
