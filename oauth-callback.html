@@ -1,22 +1,29 @@
 <!DOCTYPE html>
 <html>
   <head>
+    <meta charset="utf-8">
+    <title>ArcGIS OAuth Callback</title>
     <script>
-      function processCallback() {
-        if (window.opener) {
-          // Geef de authenticatie-gegevens door aan het hoofdscherm
-          window.opener.require(["esri/identity/OAuthInfo"], function(OAuthInfo) {});
-          if (window.location.hash) {
-            window.opener.dispatchEvent(new CustomEvent("arcgis:auth:hash", { detail: window.location.hash }));
-          } else if (window.location.search) {
-            window.opener.dispatchEvent(new CustomEvent("arcgis:auth:location", { detail: window.location.search }));
+      window.onload = function() {
+        try {
+          if (window.opener) {
+            // Geef de token (hash of search parameter) netjes door aan de hoofdapp
+            if (window.location.hash) {
+              window.opener.dispatchEvent(new CustomEvent("arcgis:auth:hash", { detail: window.location.hash }));
+            } else if (window.location.search) {
+              window.opener.dispatchEvent(new CustomEvent("arcgis:auth:location", { detail: window.location.search }));
+            }
           }
-          // Sluit de pop-up
+        } catch (error) {
+          console.error("Fout tijdens callback:", error);
+        } finally {
+          // Zorg dat hij ALTIJD afsluit, ongeacht wat er gebeurt
           window.close();
         }
-      }
+      };
     </script>
   </head>
-  <body onload="processCallback()">
+  <body>
+    <p style="font-family: sans-serif; text-align: center; margin-top: 20px;">Authenticatie afronden...</p>
   </body>
 </html>
