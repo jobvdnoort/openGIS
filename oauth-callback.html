@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <script>
+      function processCallback() {
+        if (window.opener) {
+          // Geef de authenticatie-gegevens door aan het hoofdscherm
+          window.opener.require(["esri/identity/OAuthInfo"], function(OAuthInfo) {});
+          if (window.location.hash) {
+            window.opener.dispatchEvent(new CustomEvent("arcgis:auth:hash", { detail: window.location.hash }));
+          } else if (window.location.search) {
+            window.opener.dispatchEvent(new CustomEvent("arcgis:auth:location", { detail: window.location.search }));
+          }
+          // Sluit de pop-up
+          window.close();
+        }
+      }
+    </script>
+  </head>
+  <body onload="processCallback()">
+  </body>
+</html>
