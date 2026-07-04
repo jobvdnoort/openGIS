@@ -29,7 +29,6 @@ export function initializePortalTool(view) {
     let userGroups = [];
 
     // --- GEHEUGEN (Local Storage) CHECK ---
-    // Controleer of de gebruiker al eerder velden heeft ingevuld
     const savedPortalUrl = localStorage.getItem("openGis_portalUrl") || "https://gisportal-test.boskalis.com/portal";
     const savedAppId = localStorage.getItem("openGis_appId") || "";
 
@@ -49,14 +48,20 @@ export function initializePortalTool(view) {
             });
             esriId.registerOAuthInfos([info]);
 
-            // 2. Als we terugkomen van Microsoft, checken we geruisloos de status
+            // 2. Als we een auto-login doen (bijv. na de redirect van Microsoft), checken we de status
             if (isAutoLogin) {
                 await esriId.checkSignInStatus(portalUrl);
             }
 
             // 3. Bouw verbinding op met de portal
             currentPortal = new Portal({ url: portalUrl });
-            await currentPortal.load(); // Hier triggert hij de redirect als we NOG NIET zijn ingelogd
+            
+            // Als we NIET automatisch inloggen, forceren we de redirect via immediate auth
+            if (!isAutoLogin) {
+                currentPortal.authMode = "immediate";
+            }
+            
+            await currentPortal.load(); 
             
             // 4. Succes! Verberg login scherm, toon profiel
             loginPanel.style.display = "none"; 
@@ -66,18 +71,21 @@ export function initializePortalTool(view) {
             userGroups = await currentPortal.user.fetchGroups();
 
         } catch (error) {
-            // Als we stilletjes proberen in te loggen en het lukt niet, doen we niks (gebruiker moet nog klikken)
+            // CRUCIALE FIX: Als de automatische inlogpoging faalt, loggen we het alleen in de console, 
+            // zonder het scherm te blokkeren met een alert(). De gebruiker kan nu gewoon op de knop klikken.
             if (!isAutoLogin) {
-                console.error("Inloggen mislukt:", error);
-                alert("Inloggen geannuleerd of mislukt.");
+                console.error("Inloggen handmatig mislukt:", error);
+                alert("Inloggen geannuleerd of mislukt. Controleer je URL en App-ID.");
                 loginBtn.innerText = "Inloggen";
+            } else {
+                console.log("Geen actieve sessie gevonden bij opstarten. Wachten op gebruiker.");
             }
         }
     }
 
     // --- AUTO-LOGIN BIJ OPSTARTEN ---
-    // Als we een opgeslagen App ID hebben, proberen we direct stilletjes in te loggen
-    if (savedAppId) {
+    // Probeer alleen automatisch in te loggen als we daadwerkelijk een token in de URL hebben (na de redirect van Microsoft)
+    if (savedAppId && (window.location.search || window.location.hash)) {
         performLogin(savedPortalUrl, savedAppId, true);
     }
 
@@ -88,11 +96,11 @@ export function initializePortalTool(view) {
 
         if (!portalUrl || !appIdValue) return alert("Vul URL en App-ID in.");
 
-        // Sla gegevens lokaal op zodat ze de 'redirect' naar Microsoft overleven!
+        // Sla gegevens lokaal op zodat ze de 'redirect' naar Microsoft overleven
         localStorage.setItem("openGis_portalUrl", portalUrl);
         localStorage.setItem("openGis_appId", appIdValue);
 
-        // Start het inlogproces
+        // Start het inlogproces (handmatig)
         performLogin(portalUrl, appIdValue, false);
     });
 
@@ -113,7 +121,7 @@ export function initializePortalTool(view) {
 
     logoutBtn.addEventListener("click", () => {
         esriId.destroyCredentials(); 
-        // We vergeten het account, maar houden het App ID bewaard voor het gemak de volgende keer
+        localStorage.removeItem("openGis_appId"); // Wis ook het ID bij uitloggen om schone lei te krijgen
         window.location.reload(); 
     });
 
