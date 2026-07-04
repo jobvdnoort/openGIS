@@ -5,7 +5,7 @@ import esriId from "https://js.arcgis.com/4.29/@arcgis/core/identity/IdentityMan
 import LayerList from "https://js.arcgis.com/4.29/@arcgis/core/widgets/LayerList.js";
 
 export function initializePortalTool(view) {
-    // UI Elementen ophalen
+    // UI Elementen
     const loginPanel = document.getElementById("loginPanel");
     const loginBtn = document.getElementById("loginBtn");
     const portalInput = document.getElementById("portalUrlInput");
@@ -28,60 +28,37 @@ export function initializePortalTool(view) {
     let currentPortal = null;
     let userGroups = [];
 
-    // --- INTERFACE KLIK ACTIES ---
+    // --- GEHEUGEN (Local Storage) CHECK ---
+    // Controleer of de gebruiker al eerder velden heeft ingevuld
+    const savedPortalUrl = localStorage.getItem("openGis_portalUrl") || "https://gisportal-test.boskalis.com/portal";
+    const savedAppId = localStorage.getItem("openGis_appId") || "";
 
-    // Avatar bolletje open/dicht
-    userAvatar.addEventListener("click", () => {
-        profileDropdown.style.display = profileDropdown.style.display === "none" ? "block" : "none";
-    });
+    portalInput.value = savedPortalUrl;
+    if (savedAppId) appIdInput.value = savedAppId;
 
-    // "Open WebMap..." knop in dropdown
-    openWebmapBtn.addEventListener("click", () => {
-        profileDropdown.style.display = "none"; // sluit dropdown
-        webmapModalOverlay.style.display = "block"; // open grote pop-up
-        showGroups(); // laad groepen
-    });
-
-    // Sluit (X) knop in de pop-up
-    closeModalBtn.addEventListener("click", () => {
-        webmapModalOverlay.style.display = "none";
-    });
-
-    // Log Uit knop
-    logoutBtn.addEventListener("click", () => {
-        esriId.destroyCredentials(); // Verwijder de Esri tokens
-        window.location.reload(); // Herlaad de pagina om de kaart te resetten
-    });
-
-    // --- INLOG LOGICA ---
-
-    loginBtn.addEventListener("click", async () => {
-        const portalUrl = portalInput.value.trim();
-        const appIdValue = appIdInput.value.trim();
-
-        if (!portalUrl || !appIdValue) return alert("Vul URL en App-ID in.");
-
+    // --- HERBRUIKBARE INLOG FUNCTIE ---
+    async function performLogin(portalUrl, appIdValue, isAutoLogin = false) {
         try {
-            loginBtn.innerText = "Inloggen...";
+            if (!isAutoLogin) loginBtn.innerText = "Inloggen...";
 
-            // 1. Configureer de inloggegevens ZONDER pop-up
+            // 1. OAuth Configuratie (geen popup)
             const info = new OAuthInfo({
                 appId: appIdValue,
                 portalUrl: portalUrl,
-                popup: false // <-- DIT IS DE MAGISCHE KNOP
+                popup: false 
             });
             esriId.registerOAuthInfos([info]);
 
-            // 2. Laat het Portal object het inloggen afhandelen
-            currentPortal = new Portal({ 
-                url: portalUrl, 
-                authMode: "immediate" 
-            });
+            // 2. Als we terugkomen van Microsoft, checken we geruisloos de status
+            if (isAutoLogin) {
+                await esriId.checkSignInStatus(portalUrl);
+            }
+
+            // 3. Bouw verbinding op met de portal
+            currentPortal = new Portal({ url: portalUrl });
+            await currentPortal.load(); // Hier triggert hij de redirect als we NOG NIET zijn ingelogd
             
-            // Wacht tot de portal geladen (en dus ingelogd) is
-            await currentPortal.load();
-            
-            // Inloggen gelukt! Menu ombouwen:
+            // 4. Succes! Verberg login scherm, toon profiel
             loginPanel.style.display = "none"; 
             profileWidget.style.display = "block"; 
             userNameDisplay.innerText = currentPortal.user.fullName || currentPortal.user.username;
@@ -89,14 +66,58 @@ export function initializePortalTool(view) {
             userGroups = await currentPortal.user.fetchGroups();
 
         } catch (error) {
-            console.error("Fout bij inloggen of ophalen token:", error);
-            alert("Inloggen geannuleerd of mislukt.");
-            loginBtn.innerText = "Inloggen";
+            // Als we stilletjes proberen in te loggen en het lukt niet, doen we niks (gebruiker moet nog klikken)
+            if (!isAutoLogin) {
+                console.error("Inloggen mislukt:", error);
+                alert("Inloggen geannuleerd of mislukt.");
+                loginBtn.innerText = "Inloggen";
+            }
         }
-    }); 
+    }
+
+    // --- AUTO-LOGIN BIJ OPSTARTEN ---
+    // Als we een opgeslagen App ID hebben, proberen we direct stilletjes in te loggen
+    if (savedAppId) {
+        performLogin(savedPortalUrl, savedAppId, true);
+    }
+
+    // --- HANDMATIG INLOGGEN (BUTTON KLIK) ---
+    loginBtn.addEventListener("click", () => {
+        const portalUrl = portalInput.value.trim();
+        const appIdValue = appIdInput.value.trim();
+
+        if (!portalUrl || !appIdValue) return alert("Vul URL en App-ID in.");
+
+        // Sla gegevens lokaal op zodat ze de 'redirect' naar Microsoft overleven!
+        localStorage.setItem("openGis_portalUrl", portalUrl);
+        localStorage.setItem("openGis_appId", appIdValue);
+
+        // Start het inlogproces
+        performLogin(portalUrl, appIdValue, false);
+    });
+
+    // --- INTERFACE KLIK ACTIES ---
+    userAvatar.addEventListener("click", () => {
+        profileDropdown.style.display = profileDropdown.style.display === "none" ? "block" : "none";
+    });
+
+    openWebmapBtn.addEventListener("click", () => {
+        profileDropdown.style.display = "none"; 
+        webmapModalOverlay.style.display = "block"; 
+        showGroups(); 
+    });
+
+    closeModalBtn.addEventListener("click", () => {
+        webmapModalOverlay.style.display = "none";
+    });
+
+    logoutBtn.addEventListener("click", () => {
+        esriId.destroyCredentials(); 
+        // We vergeten het account, maar houden het App ID bewaard voor het gemak de volgende keer
+        window.location.reload(); 
+    });
 
     // --- WEBMAP KIEZER LOGICA ---
-
     function showGroups() {
         panelTitle.innerText = "Mijn Groepen";
         backBtn.style.display = "none";
@@ -148,19 +169,14 @@ export function initializePortalTool(view) {
     function renderWebMap(webmapId, mapTitle) {
         console.log(`WebMap laden: ${webmapId}`);
         
-        // 1. Verberg de Modal Pop-up
         webmapModalOverlay.style.display = "none";
-        
-        // 2. Update de tekst in het dropdown menu met de nieuwe kaartnaam
         activeMapDisplay.innerText = mapTitle;
 
-        // 3. Laad de nieuwe kaart
         const newWebMap = new WebMap({
             portalItem: { id: webmapId, portal: currentPortal }
         });
         view.map = newWebMap;
 
-        // 4. Voeg de Kaartlagenlijst toe aan de linkerkant
         view.when(() => {
             view.ui.empty("top-left"); 
             const layerList = new LayerList({ view: view });
