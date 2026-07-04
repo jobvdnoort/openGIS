@@ -318,3 +318,23 @@ hr {
     box-shadow: none !important;
     padding: 0 !important;
 }
+/* --- Maak duidelijk dat je de titelbalk kunt vastpakken --- */
+.custom-widget-panel .panel-header {
+    cursor: grab;
+}
+
+.custom-widget-panel .panel-header:active {
+    cursor: grabbing;
+}
+
+/* --- Overschrijf de lelijke hoekige Esri knoppen --- */
+.esri-widget .esri-button {
+    border-radius: 20px !important; /* Afgeronde hoeken net als jouw eigen app */
+    background-color: #005e9e !important; /* Boskalis blauw */
+    border: none !important;
+    transition: background-color 0.2s !important;
+}
+
+.esri-widget .esri-button:hover {
+    background-color: #004a7c !important; /* Iets donkerder bij hover */
+}
