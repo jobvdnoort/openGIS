@@ -35,12 +35,9 @@ export function initializePortalTool(view) {
     portalInput.value = savedPortalUrl;
     if (savedAppId) appIdInput.value = savedAppId;
 
-    // --- 2. AGRESSIEVE AUTO-LOGIN CHECK ---
-    const currentUrl = window.location.href;
-    const hasAuthCode = currentUrl.includes("code=") || currentUrl.includes("access_token=");
-
+    // --- 2. AUTOMATISCHE LOGIN CHECK ---
     if (savedAppId && savedPortalUrl) {
-        // Registreer onmiddellijk!
+        // Registreer de OAuth instellingen direct bij het laden van de pagina
         const info = new OAuthInfo({
             appId: savedAppId,
             portalUrl: savedPortalUrl,
@@ -48,43 +45,27 @@ export function initializePortalTool(view) {
         });
         esriId.registerOAuthInfos([info]);
 
-        if (hasAuthCode) {
-            console.log("We hebben een redirect-code! Direct inwisselen op de achtergrond...");
-            loginBtn.innerText = "Sessie herstellen...";
+        loginBtn.innerText = "Sessie controleren...";
 
-            // DE FIX: Gebruik Portal in plaats van getCredential om de URL-code veilig in te wisselen
-            const autoPortal = new Portal({
-                url: savedPortalUrl,
-                authMode: "immediate" 
+        // Laat IdentityManager direct controleren of we ingelogd zijn
+        // OF of er een verse '?code=' in de URL staat die verwerkt moet worden.
+        esriId.checkSignInStatus(savedPortalUrl + "/sharing")
+            .then(() => {
+                console.log("Token succesvol bemachtigd of sessie hersteld!");
+                
+                // Wis de lange code uit de adresbalk voor een nette applicatie
+                window.history.replaceState({}, document.title, window.location.pathname);
+                
+                currentPortal = new Portal({ url: savedPortalUrl });
+                return currentPortal.load();
+            })
+            .then(() => {
+                loadPortalAndUI();
+            })
+            .catch(() => {
+                console.log("Geen actieve sessie of redirect code. Wachten op handmatige login.");
+                loginBtn.innerText = "Inloggen";
             });
-
-            autoPortal.load()
-                .then(() => {
-                    console.log("Token succesvol bemachtigd! URL opschonen...");
-                    // Wis de lange code uit de adresbalk voor een nette applicatie
-                    window.history.replaceState({}, document.title, window.location.pathname);
-                    currentPortal = autoPortal; // Sla de succesvolle portal op
-                    loadPortalAndUI();
-                })
-                .catch(err => {
-                    console.error("Fout bij het inwisselen van de URL code:", err);
-                    loginBtn.innerText = "Inloggen";
-                });
-        } else {
-            // Geen code in URL, check of we gisteren/eerder al waren ingelogd
-            esriId.checkSignInStatus(savedPortalUrl)
-                .then(() => {
-                    console.log("Bestaande inlogsessie gevonden in geheugen!");
-                    currentPortal = new Portal({ url: savedPortalUrl });
-                    return currentPortal.load();
-                })
-                .then(() => {
-                    loadPortalAndUI();
-                })
-                .catch(() => {
-                    console.log("Geen actieve sessie. Wachten op handmatige login.");
-                });
-        }
     }
 
     // --- 3. CENTRALE FUNCTIE: UI OPBOUWEN ---
@@ -119,16 +100,14 @@ export function initializePortalTool(view) {
         });
         esriId.registerOAuthInfos([info]);
 
-        // DE FIX: Forceer de redirect altijd via het Portal object!
-        const manualPortal = new Portal({
-            url: portalUrl,
-            authMode: "immediate" 
-        });
-
-        manualPortal.load()
+        // getCredential triggert de daadwerkelijke login-redirect (omdat popup: false is ingesteld)
+        esriId.getCredential(portalUrl + "/sharing")
             .then(() => {
-                // (Dit wordt alleen aangeroepen als de browser miraculeus lokaal inlogt zonder redirect)
-                currentPortal = manualPortal;
+                // Als de browser toevallig tóch een lokale token had zonder te redirecten
+                currentPortal = new Portal({ url: portalUrl });
+                return currentPortal.load();
+            })
+            .then(() => {
                 loadPortalAndUI();
             })
             .catch((error) => {
