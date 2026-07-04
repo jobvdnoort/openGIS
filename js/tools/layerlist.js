@@ -5,7 +5,7 @@ export function buildBeautifulLayerList(view) {
         const panel = document.getElementById("customLayerPanel");
         const listContainer = document.getElementById("customLayerList");
         
-        // Maak de lijst eerst leeg en toon het paneel 
+        // Maak de lijst eerst leeg en toon het paneel
         listContainer.innerHTML = "";
         panel.style.display = "block";
 
