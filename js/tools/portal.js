@@ -64,7 +64,7 @@ export function initializePortalTool(view) {
         try {
             loginBtn.innerText = "Inloggen...";
 
-            // 1. Configureer de inloggegevens
+            // 1. Configureer de inloggegevens inclusief callback
             const info = new OAuthInfo({
                 appId: appIdValue,
                 portalUrl: portalUrl,
@@ -73,11 +73,13 @@ export function initializePortalTool(view) {
             });
             esriId.registerOAuthInfos([info]);
 
-            // 2. Forceer de app om expliciet te wachten op het token uit de pop-up
-            await esriId.getCredential(portalUrl);
-
-            // 3. Pas áls we de credentials hebben, maken we verbinding met het Portaal
-            currentPortal = new Portal({ url: portalUrl });
+            // 2. Laat het Portal object zelf het inloggen en de token-servers afhandelen!
+            currentPortal = new Portal({ 
+                url: portalUrl, 
+                authMode: "immediate" // Dit triggert de pop-up op de juiste manier
+            });
+            
+            // Wacht tot de portal geladen (en dus ingelogd) is
             await currentPortal.load();
             
             // Inloggen gelukt! Menu ombouwen:
@@ -92,7 +94,7 @@ export function initializePortalTool(view) {
             alert("Inloggen geannuleerd of mislukt.");
             loginBtn.innerText = "Inloggen";
         }
-    }); // <-- HIER STOND HET FOUTJE, DE EVENT LISTENER IS NU NETJES GESLOTEN!
+    }); 
 
     // --- WEBMAP KIEZER LOGICA ---
 
