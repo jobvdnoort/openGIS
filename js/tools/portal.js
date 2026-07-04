@@ -68,7 +68,7 @@ export function initializePortalTool(view) {
                 appId: appIdValue,
                 portalUrl: portalUrl,
                 popup: true,
-                popupCallbackUrl: "https://jobvdnoort.github.io/openGIS/index.html"
+                popupCallbackUrl: "https://jobvdnoort.github.io/openGIS/oauth-callback.html"
             });
             esriId.registerOAuthInfos([info]);
 
