@@ -327,14 +327,24 @@ hr {
     cursor: grabbing;
 }
 
-/* --- Overschrijf de lelijke hoekige Esri knoppen --- */
-.esri-widget .esri-button {
-    border-radius: 20px !important; /* Afgeronde hoeken net als jouw eigen app */
-    background-color: #005e9e !important; /* Boskalis blauw */
-    border: none !important;
-    transition: background-color 0.2s !important;
+/* --- Forceer afronding voor Esri Calcite web-components (ArcGIS 4.x) --- */
+calcite-button {
+    --calcite-border-radius: 20px;
+    --calcite-color-brand: #005e9e;
+    --calcite-color-brand-hover: #004a7c;
 }
 
-.esri-widget .esri-button:hover {
-    background-color: #004a7c !important; /* Iets donkerder bij hover */
+/* --- Laad Icoontje (Spinner) --- */
+.loader {
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #005e9e; /* Boskalis blauw */
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }

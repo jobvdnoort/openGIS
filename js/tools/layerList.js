@@ -1,3 +1,5 @@
+import { showLoader, hideLoader } from "./loader.js";
+
 export function buildBeautifulLayerList(view) {
     view.when(() => {
         const panel = document.getElementById("customLayerPanel");
@@ -8,17 +10,19 @@ export function buildBeautifulLayerList(view) {
 
         view.map.when(async () => {
             
+            // 1. ZET DE SPINNER AAN!
+            showLoader();
+            
             // Onze recursieve functie om mappenstructuren te bouwen
             async function createLayerNode(layer, parentContainer) {
                 if (!layer) return;
 
-                // DE FIX: Alleen .load() aanroepen als de laag deze methode daadwerkelijk heeft (sublayers hebben dit niet!)
+                // Alleen .load() aanroepen als de laag deze methode daadwerkelijk heeft (sublayers hebben dit niet!)
                 if (layer && typeof layer.load === "function") {
                     try {
                         await layer.load();
                     } catch (error) {
                         console.error(`Fout bij het laden van laag ${layer.title || 'Naamloos'}:`, error);
-                        // We gaan gewoon door zodat andere lagen niet blokkeren
                     }
                 }
 
@@ -93,7 +97,6 @@ export function buildBeautifulLayerList(view) {
                 // Als er sub-lagen zijn, roep deze functie recursief aan voor de kinderen
                 if (hasChildren) {
                     wrapper.appendChild(childrenContainer);
-                    // Zorg dat we er altijd een array van maken (ongeacht of het een Esri Collection of Array is)
                     const subArray = sublayers.toArray ? sublayers.toArray() : sublayers;
                     for (const subLayer of subArray) {
                         await createLayerNode(subLayer, childrenContainer);
@@ -104,15 +107,21 @@ export function buildBeautifulLayerList(view) {
                 parentContainer.prepend(wrapper);
             }
 
-            // Loop door alle hoofdlagen in de WebMap met een try-catch veilgheidsnet
+            // Loop door alle hoofdlagen in de WebMap
             const mainLayers = view.map.layers.toArray();
-            for (const mainLayer of mainLayers) {
-                try {
-                    await createLayerNode(mainLayer, listContainer);
-                } catch (err) {
+            
+            // 2. SNELHEIDSBOOST: We starten het laden voor alle hoofdlagen tegelijk (parallel)
+            const promises = mainLayers.map(mainLayer => {
+                return createLayerNode(mainLayer, listContainer).catch(err => {
                     console.error("Fout bij het toevoegen van hoofdlaag aan de UI:", mainLayer.title, err);
-                }
-            }
+                });
+            });
+
+            // Wacht totdat alle parallelle 'promises' volledig zijn afgerond
+            await Promise.all(promises);
+
+            // 3. ZET DE SPINNER WEER UIT!
+            hideLoader();
         });
     });
 }

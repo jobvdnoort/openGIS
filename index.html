@@ -35,29 +35,20 @@
 
 
     <div id="profileWidget" style="display: none;">
-
-        <img id="userAvatar" src="https://www.w3schools.com/howto/img_avatar.png" alt="Profiel">
-
-       
-
-        <div id="profileDropdown" style="display: none;">
-
-            <div style="font-size: 13px; color: #555;">Ingelogd als:</div>
-
-            <strong id="userNameDisplay">Gebruiker</strong>
-
-            <hr>
-
-            <div style="font-size: 13px; color: #555;">Actieve WebMap:</div>
-
-            <div id="activeMapDisplay" style="font-weight: bold; margin-bottom: 10px; color: #005e9e;">Geen</div>
-
-            <button id="openWebmapBtn" class="primary-btn">Open WebMap...</button>
-
-            <button id="logoutBtn" class="secondary-btn" style="margin-top: 5px;">Log uit</button>
-
+        <div style="display: flex; align-items: center; gap: 15px;">
+            <div id="globalLoader" class="loader" style="display: none;" title="Kaartlagen laden..."></div>
+            <img id="userAvatar" src="https://www.w3schools.com/howto/img_avatar.png" alt="Profiel">
         </div>
-
+        
+        <div id="profileDropdown" style="display: none;">
+            <div style="font-size: 13px; color: #555;">Ingelogd als:</div>
+            <strong id="userNameDisplay">Gebruiker</strong>
+            <hr>
+            <div style="font-size: 13px; color: #555;">Actieve WebMap:</div>
+            <div id="activeMapDisplay" style="font-weight: bold; margin-bottom: 10px; color: #005e9e;">Geen</div>
+            <button id="openWebmapBtn" class="primary-btn">Open WebMap...</button>
+            <button id="logoutBtn" class="secondary-btn" style="margin-top: 5px;">Log uit</button>
+        </div>
     </div>
 
 
