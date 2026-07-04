@@ -2,7 +2,8 @@ import Portal from "https://js.arcgis.com/4.29/@arcgis/core/portal/Portal.js";
 import WebMap from "https://js.arcgis.com/4.29/@arcgis/core/WebMap.js";
 import OAuthInfo from "https://js.arcgis.com/4.29/@arcgis/core/identity/OAuthInfo.js";
 import esriId from "https://js.arcgis.com/4.29/@arcgis/core/identity/IdentityManager.js";
-import LayerList from "https://js.arcgis.com/4.29/@arcgis/core/widgets/LayerList.js";
+// 1. Oude Esri LayerList import verwijderd en vervangen door jouw eigen module:
+import { buildBeautifulLayerList } from "./layerList.js";
 
 export function initializePortalTool(view) {
     // UI Elementen
@@ -196,10 +197,10 @@ export function initializePortalTool(view) {
         });
         view.map = newWebMap;
 
+        // 2. Haal Esri rommel weg en roep jouw custom module aan
         view.when(() => {
             view.ui.empty("top-left"); 
-            const layerList = new LayerList({ view: view });
-            view.ui.add(layerList, "top-left");
+            buildBeautifulLayerList(view);
         });
     }
 }
