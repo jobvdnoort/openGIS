@@ -7,7 +7,6 @@
       window.onload = function() {
         try {
           if (window.opener) {
-            // Geef de token (hash of search parameter) netjes door aan de hoofdapp
             if (window.location.hash) {
               window.opener.dispatchEvent(new CustomEvent("arcgis:auth:hash", { detail: window.location.hash }));
             } else if (window.location.search) {
@@ -16,8 +15,8 @@
           }
         } catch (error) {
           console.error("Fout tijdens callback:", error);
-        } finally {
-         // WACHT 500 milliseconden (0.5 sec) zodat de hoofdapp de tijd heeft om het event te vangen, sluit daarna af.
+        }
+        
         setTimeout(function() {
             window.close();
         }, 500);
@@ -25,6 +24,6 @@
     </script>
   </head>
   <body>
-    <p style="font-family: sans-serif; text-align: center; margin-top: 20px;">Authenticatie afronden...</p>
+    <p style="font-family: sans-serif; text-align: center; margin-top: 20px;">Authenticatie afronden... Een moment geduld.</p>
   </body>
 </html>
