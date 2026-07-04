@@ -37,7 +37,7 @@ export function initializePortalTool(view) {
 
     // --- 2. DIRECT AUTO-LOGIN CHECKEN BIJ OPSTARTEN ---
     if (savedAppId && savedPortalUrl) {
-        // Registreer onmiddellijk, zodat Esri weet wie we zijn
+        // Registreer onmiddellijk!
         const info = new OAuthInfo({
             appId: savedAppId,
             portalUrl: savedPortalUrl,
@@ -45,29 +45,18 @@ export function initializePortalTool(view) {
         });
         esriId.registerOAuthInfos([info]);
 
-        // Komen we net terug van Microsoft met een code in de URL?
-        const isRedirectReturn = window.location.search.includes("code=") || window.location.hash.includes("access_token=");
-
-        if (isRedirectReturn) {
-            console.log("Redirect code gevonden in URL. Code inwisselen voor token...");
-            // getCredential pakt de code uit de URL en logt ons geruisloos in!
-            esriId.getCredential(savedPortalUrl)
-                .then(() => loadPortalAndUI(savedPortalUrl))
-                .catch(err => console.error("Fout bij verwerken URL code:", err));
-        } else {
-            // Normale opstart: check of we nog een geldige sessie in het geheugen hebben
-            esriId.checkSignInStatus(savedPortalUrl)
-                .then(() => {
-                    console.log("Bestaande inlogsessie gevonden! UI opbouwen...");
-                    loadPortalAndUI(savedPortalUrl);
-                })
-                .catch(() => {
-                    console.log("Geen actieve sessie. Wachten op handmatige login.");
-                });
-        }
+        // checkSignInStatus is eigenlijk heel slim: hij checkt zowel het geheugen ALS eventuele codes in de URL!
+        esriId.checkSignInStatus(savedPortalUrl)
+            .then(() => {
+                console.log("Inlogsessie (of URL token) gevonden! UI opbouwen...");
+                loadPortalAndUI(savedPortalUrl);
+            })
+            .catch(() => {
+                console.log("Geen actieve sessie. Wachten op handmatige login.");
+            });
     }
 
-    // --- 3. CENTRALE FUNCTIE: UI OPBOUWEN NA SUCCESVOLLE LOGIN ---
+    // --- 3. CENTRALE FUNCTIE: UI OPBOUWEN ---
     async function loadPortalAndUI(portalUrl) {
         try {
             currentPortal = new Portal({ url: portalUrl });
@@ -91,7 +80,6 @@ export function initializePortalTool(view) {
 
         if (!portalUrl || !appIdValue) return alert("Vul URL en App-ID in.");
 
-        // Sla direct op zodat we het onthouden als we weggestuurd worden
         localStorage.setItem("openGis_portalUrl", portalUrl);
         localStorage.setItem("openGis_appId", appIdValue);
 
@@ -104,11 +92,20 @@ export function initializePortalTool(view) {
         });
         esriId.registerOAuthInfos([info]);
 
-        // Forceer de inlog/redirect procedure
-        esriId.getCredential(portalUrl)
-            .then(() => loadPortalAndUI(portalUrl))
+        // DE FIX: Voor Enterprise portalen móéten we het Portal object gebruiken om de redirect te starten,
+        // anders weet hij niet waar de token server staat!
+        const tempPortal = new Portal({
+            url: portalUrl,
+            authMode: "immediate" // Dit dwingt de redirect veilig af
+        });
+
+        tempPortal.load()
+            .then(() => {
+                // Voor de zekerheid, mocht hij niet hoeven redirecten:
+                loadPortalAndUI(portalUrl);
+            })
             .catch((error) => {
-                console.error("Inlogprocedure afgebroken:", error);
+                console.error("Inlogprocedure afgebroken of mislukt:", error);
                 loginBtn.innerText = "Inloggen";
             });
     });
