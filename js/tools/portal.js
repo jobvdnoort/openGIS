@@ -45,22 +45,51 @@ export function initializePortalTool(view) {
         });
         esriId.registerOAuthInfos([info]);
 
-        // checkSignInStatus is eigenlijk heel slim: hij checkt zowel het geheugen ALS eventuele codes in de URL!
-        esriId.checkSignInStatus(savedPortalUrl)
-            .then(() => {
-                console.log("Inlogsessie (of URL token) gevonden! UI opbouwen...");
-                loadPortalAndUI(savedPortalUrl);
-            })
-            .catch(() => {
-                console.log("Geen actieve sessie. Wachten op handmatige login.");
+        // Komen we net terug van Microsoft met een code in de URL?
+        const isRedirectReturn = window.location.search.includes("code=");
+
+        if (isRedirectReturn) {
+            console.log("Redirect code gevonden in URL! We loggen automatisch in...");
+            loginBtn.innerText = "Sessie herstellen...";
+
+            // Voer exact dezelfde actie uit als de 'tweede klik', maar dan automatisch!
+            const autoPortal = new Portal({
+                url: savedPortalUrl,
+                authMode: "immediate" // Dit dwingt de Portal om de URL-code direct te verwerken
             });
+
+            autoPortal.load()
+                .then(() => {
+                    // Haal die lange lelijke '?code=...' tekst netjes uit de adresbalk weg!
+                    window.history.replaceState({}, document.title, window.location.pathname);
+                    loadPortalAndUI(savedPortalUrl);
+                })
+                .catch(err => {
+                    console.error("Fout bij automatisch inloggen:", err);
+                    loginBtn.innerText = "Inloggen";
+                });
+
+        } else {
+            // Normale opstart, check geheugen
+            esriId.checkSignInStatus(savedPortalUrl)
+                .then(() => {
+                    console.log("Bestaande inlogsessie gevonden in geheugen! UI opbouwen...");
+                    loadPortalAndUI(savedPortalUrl);
+                })
+                .catch(() => {
+                    console.log("Geen actieve sessie. Wachten op handmatige login.");
+                });
+        }
     }
 
     // --- 3. CENTRALE FUNCTIE: UI OPBOUWEN ---
     async function loadPortalAndUI(portalUrl) {
         try {
-            currentPortal = new Portal({ url: portalUrl });
-            await currentPortal.load(); 
+            // Als currentPortal nog niet bestaat (bijv. via checkSignInStatus), maak hem dan aan
+            if (!currentPortal) {
+                currentPortal = new Portal({ url: portalUrl });
+                await currentPortal.load(); 
+            }
             
             // Verberg inlogblok, toon het profiel-bolletje
             loginPanel.style.display = "none"; 
@@ -92,20 +121,17 @@ export function initializePortalTool(view) {
         });
         esriId.registerOAuthInfos([info]);
 
-        // DE FIX: Voor Enterprise portalen móéten we het Portal object gebruiken om de redirect te starten,
-        // anders weet hij niet waar de token server staat!
-        const tempPortal = new Portal({
+        currentPortal = new Portal({
             url: portalUrl,
-            authMode: "immediate" // Dit dwingt de redirect veilig af
+            authMode: "immediate" 
         });
 
-        tempPortal.load()
+        currentPortal.load()
             .then(() => {
-                // Voor de zekerheid, mocht hij niet hoeven redirecten:
                 loadPortalAndUI(portalUrl);
             })
             .catch((error) => {
-                console.error("Inlogprocedure afgebroken of mislukt:", error);
+                console.error("Inlogprocedure afgebroken of weggestuurd naar loginpagina:", error);
                 loginBtn.innerText = "Inloggen";
             });
     });
