@@ -36,8 +36,8 @@ export function initializePortalTool(view) {
     if (savedAppId) appIdInput.value = savedAppId;
 
     // --- 2. DIRECT AUTO-LOGIN CHECKEN BIJ OPSTARTEN ---
-    // Als we een App ID hebben, registreren we dit onmiddellijk, zodat Esri een eventuele redirect-code in de URL direct snapt.
     if (savedAppId && savedPortalUrl) {
+        // Registreer onmiddellijk, zodat Esri weet wie we zijn
         const info = new OAuthInfo({
             appId: savedAppId,
             portalUrl: savedPortalUrl,
@@ -45,15 +45,26 @@ export function initializePortalTool(view) {
         });
         esriId.registerOAuthInfos([info]);
 
-        // Check direct of de gebruiker al is ingelogd (of net terugkomt van de login pagina)
-        esriId.checkSignInStatus(savedPortalUrl)
-            .then(() => {
-                console.log("Inlogsessie gevonden! UI opbouwen...");
-                loadPortalAndUI(savedPortalUrl);
-            })
-            .catch(() => {
-                console.log("Geen inlogsessie actief. Wachten op handmatige login.");
-            });
+        // Komen we net terug van Microsoft met een code in de URL?
+        const isRedirectReturn = window.location.search.includes("code=") || window.location.hash.includes("access_token=");
+
+        if (isRedirectReturn) {
+            console.log("Redirect code gevonden in URL. Code inwisselen voor token...");
+            // getCredential pakt de code uit de URL en logt ons geruisloos in!
+            esriId.getCredential(savedPortalUrl)
+                .then(() => loadPortalAndUI(savedPortalUrl))
+                .catch(err => console.error("Fout bij verwerken URL code:", err));
+        } else {
+            // Normale opstart: check of we nog een geldige sessie in het geheugen hebben
+            esriId.checkSignInStatus(savedPortalUrl)
+                .then(() => {
+                    console.log("Bestaande inlogsessie gevonden! UI opbouwen...");
+                    loadPortalAndUI(savedPortalUrl);
+                })
+                .catch(() => {
+                    console.log("Geen actieve sessie. Wachten op handmatige login.");
+                });
+        }
     }
 
     // --- 3. CENTRALE FUNCTIE: UI OPBOUWEN NA SUCCESVOLLE LOGIN ---
@@ -86,7 +97,6 @@ export function initializePortalTool(view) {
 
         loginBtn.innerText = "Bezig met doorsturen...";
 
-        // Registreer de configuratie (nodig als dit de eerste keer is)
         const info = new OAuthInfo({
             appId: appIdValue,
             portalUrl: portalUrl,
@@ -96,10 +106,7 @@ export function initializePortalTool(view) {
 
         // Forceer de inlog/redirect procedure
         esriId.getCredential(portalUrl)
-            .then(() => {
-                // Mocht de inlog op miraculeuze wijze lokaal slagen zonder redirect:
-                loadPortalAndUI(portalUrl);
-            })
+            .then(() => loadPortalAndUI(portalUrl))
             .catch((error) => {
                 console.error("Inlogprocedure afgebroken:", error);
                 loginBtn.innerText = "Inloggen";
@@ -123,7 +130,6 @@ export function initializePortalTool(view) {
 
     logoutBtn.addEventListener("click", () => {
         esriId.destroyCredentials(); 
-        // We laten het App-ID in localStorage staan, puur voor gebruiksgemak bij de volgende login
         window.location.reload(); 
     });
 
