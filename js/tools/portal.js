@@ -40,7 +40,7 @@ export function initializePortalTool(view) {
         try {
             if (!isAutoLogin) loginBtn.innerText = "Inloggen...";
 
-            // 1. OAuth Configuratie (geen popup)
+            // 1. Bouw altijd eerst de OAuthInfo op (essentieel zodat de IdentityManager weet wie de app is)
             const info = new OAuthInfo({
                 appId: appIdValue,
                 portalUrl: portalUrl,
@@ -48,22 +48,21 @@ export function initializePortalTool(view) {
             });
             esriId.registerOAuthInfos([info]);
 
-            // 2. Als we een auto-login doen (bijv. na de redirect van Microsoft), checken we de status
-            if (isAutoLogin) {
-                await esriId.checkSignInStatus(portalUrl);
-            }
-
-            // 3. Bouw verbinding op met de portal
+            // 2. Maak verbinding met het Portaal
             currentPortal = new Portal({ url: portalUrl });
             
-            // Als we NIET automatisch inloggen, forceren we de redirect via immediate auth
             if (!isAutoLogin) {
+                // Handmatige klik: dwing inloggen en redirect af
                 currentPortal.authMode = "immediate";
+            } else {
+                // Automatische check bij opstarten: kijk geruisloos of we al een token hebben
+                currentPortal.authMode = "auto";
             }
             
+            // Laad de portal. Als er een token in de URL zit, pakt Esri deze nu automatisch op!
             await currentPortal.load(); 
             
-            // 4. Succes! Verberg login scherm, toon profiel
+            // 3. Succes! Verberg login scherm, toon profiel
             loginPanel.style.display = "none"; 
             profileWidget.style.display = "block"; 
             userNameDisplay.innerText = currentPortal.user.fullName || currentPortal.user.username;
@@ -71,21 +70,27 @@ export function initializePortalTool(view) {
             userGroups = await currentPortal.user.fetchGroups();
 
         } catch (error) {
-            // CRUCIALE FIX: Als de automatische inlogpoging faalt, loggen we het alleen in de console, 
-            // zonder het scherm te blokkeren met een alert(). De gebruiker kan nu gewoon op de knop klikken.
+            // Foutafhandeling
             if (!isAutoLogin) {
                 console.error("Inloggen handmatig mislukt:", error);
                 alert("Inloggen geannuleerd of mislukt. Controleer je URL en App-ID.");
                 loginBtn.innerText = "Inloggen";
             } else {
-                console.log("Geen actieve sessie gevonden bij opstarten. Wachten op gebruiker.");
+                // Auto-login faalt stil als er (nog) geen token in de URL zit. Dat is prima, dan moet men klikken.
+                console.log("Geen actieve inlogsessie of token gevonden in de URL bij opstarten.");
             }
         }
     }
 
-    // --- AUTO-LOGIN BIJ OPSTARTEN ---
-    // Probeer alleen automatisch in te loggen als we daadwerkelijk een token in de URL hebben (na de redirect van Microsoft)
-    if (savedAppId && (window.location.search || window.location.hash)) {
+    // --- RECHTSTREEKSE AUTO-LOGIN BIJ OPSTARTEN ---
+    // Zodra de pagina laadt, controleren we direct of we een opgeslagen App-ID hebben én of er inlogparameters 
+    // (zoals '?code=...' of '#access_token=...') in de URL aanwezig zijn van de redirect.
+    const hasOAuthParams = window.location.search.includes("code=") || 
+                           window.location.search.includes("oauth") || 
+                           window.location.hash.includes("access_token=");
+
+    if (savedAppId && hasOAuthParams) {
+        console.log("Inlog-tokens gedetecteerd in URL. Auto-login starten...");
         performLogin(savedPortalUrl, savedAppId, true);
     }
 
@@ -96,11 +101,10 @@ export function initializePortalTool(view) {
 
         if (!portalUrl || !appIdValue) return alert("Vul URL en App-ID in.");
 
-        // Sla gegevens lokaal op zodat ze de 'redirect' naar Microsoft overleven
+        // Sla gegevens lokaal op zodat ze de 'redirect' overleven
         localStorage.setItem("openGis_portalUrl", portalUrl);
         localStorage.setItem("openGis_appId", appIdValue);
 
-        // Start het inlogproces (handmatig)
         performLogin(portalUrl, appIdValue, false);
     });
 
@@ -121,7 +125,7 @@ export function initializePortalTool(view) {
 
     logoutBtn.addEventListener("click", () => {
         esriId.destroyCredentials(); 
-        localStorage.removeItem("openGis_appId"); // Wis ook het ID bij uitloggen om schone lei te krijgen
+        localStorage.removeItem("openGis_appId"); // Wis het ID bij uitloggen voor een schone lei
         window.location.reload(); 
     });
 
