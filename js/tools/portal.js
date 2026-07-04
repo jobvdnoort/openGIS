@@ -35,7 +35,15 @@ export function initializePortalTool(view) {
     portalInput.value = savedPortalUrl;
     if (savedAppId) appIdInput.value = savedAppId;
 
-    // --- 2. DIRECT AUTO-LOGIN CHECKEN BIJ OPSTARTEN ---
+    // --- 2. AGRESSIEVE AUTO-LOGIN CHECK ---
+    // We kijken nu naar de VOLLEDIGE adresbalk, dit kan niet meer missen.
+    const currentUrl = window.location.href;
+    const hasAuthCode = currentUrl.includes("code=") || currentUrl.includes("access_token=");
+
+    console.log("--- OPEN GIS LOGIN CHECK ---");
+    console.log("Opgeslagen App-ID:", savedAppId ? "Aanwezig" : "Leeg");
+    console.log("Inlogcode in adresbalk gezien?", hasAuthCode);
+
     if (savedAppId && savedPortalUrl) {
         // Registreer onmiddellijk!
         const info = new OAuthInfo({
@@ -45,39 +53,31 @@ export function initializePortalTool(view) {
         });
         esriId.registerOAuthInfos([info]);
 
-        // Komen we net terug van Microsoft met een code in de URL?
-        const isRedirectReturn = window.location.search.includes("code=");
-
-        if (isRedirectReturn) {
-            console.log("Redirect code gevonden in URL! We loggen automatisch in...");
+        if (hasAuthCode) {
+            console.log("We hebben een redirect-code! Direct inwisselen op de achtergrond...");
             loginBtn.innerText = "Sessie herstellen...";
 
-            // Voer exact dezelfde actie uit als de 'tweede klik', maar dan automatisch!
-            const autoPortal = new Portal({
-                url: savedPortalUrl,
-                authMode: "immediate" // Dit dwingt de Portal om de URL-code direct te verwerken
-            });
-
-            autoPortal.load()
+            // Dit commando scant de URL, pakt de code en logt je direct in!
+            esriId.getCredential(savedPortalUrl)
                 .then(() => {
-                    // Haal die lange lelijke '?code=...' tekst netjes uit de adresbalk weg!
+                    console.log("Token succesvol bemachtigd! URL opschonen...");
+                    // Wis de lange code uit de adresbalk voor een nette applicatie
                     window.history.replaceState({}, document.title, window.location.pathname);
                     loadPortalAndUI(savedPortalUrl);
                 })
                 .catch(err => {
-                    console.error("Fout bij automatisch inloggen:", err);
+                    console.error("Fout bij het inwisselen van de URL code:", err);
                     loginBtn.innerText = "Inloggen";
                 });
-
         } else {
-            // Normale opstart, check geheugen
+            // Geen code in URL, check of we gisteren/eerder al waren ingelogd
             esriId.checkSignInStatus(savedPortalUrl)
                 .then(() => {
-                    console.log("Bestaande inlogsessie gevonden in geheugen! UI opbouwen...");
+                    console.log("Bestaande inlogsessie gevonden in geheugen!");
                     loadPortalAndUI(savedPortalUrl);
                 })
                 .catch(() => {
-                    console.log("Geen actieve sessie. Wachten op handmatige login.");
+                    console.log("Geen code in URL en geen bestaande sessie. Gebruiker moet klikken.");
                 });
         }
     }
@@ -85,13 +85,11 @@ export function initializePortalTool(view) {
     // --- 3. CENTRALE FUNCTIE: UI OPBOUWEN ---
     async function loadPortalAndUI(portalUrl) {
         try {
-            // Als currentPortal nog niet bestaat (bijv. via checkSignInStatus), maak hem dan aan
             if (!currentPortal) {
                 currentPortal = new Portal({ url: portalUrl });
                 await currentPortal.load(); 
             }
             
-            // Verberg inlogblok, toon het profiel-bolletje
             loginPanel.style.display = "none"; 
             profileWidget.style.display = "block"; 
             userNameDisplay.innerText = currentPortal.user.fullName || currentPortal.user.username;
@@ -121,17 +119,11 @@ export function initializePortalTool(view) {
         });
         esriId.registerOAuthInfos([info]);
 
-        currentPortal = new Portal({
-            url: portalUrl,
-            authMode: "immediate" 
-        });
-
-        currentPortal.load()
-            .then(() => {
-                loadPortalAndUI(portalUrl);
-            })
+        // Handmatige klik = forceer redirect naar Microsoft
+        esriId.getCredential(portalUrl)
+            .then(() => loadPortalAndUI(portalUrl))
             .catch((error) => {
-                console.error("Inlogprocedure afgebroken of weggestuurd naar loginpagina:", error);
+                console.error("Inlogprocedure afgebroken:", error);
                 loginBtn.innerText = "Inloggen";
             });
     });
