@@ -73,7 +73,7 @@ export function initializePortalTool(view) {
             });
             esriId.registerOAuthInfos([info]);
 
-            // 2. STAP TOEGEVOEGD: Forceer de app om expliciet te wachten op het token uit de pop-up
+            // 2. Forceer de app om expliciet te wachten op het token uit de pop-up
             await esriId.getCredential(portalUrl);
 
             // 3. Pas áls we de credentials hebben, maken we verbinding met het Portaal
@@ -92,6 +92,7 @@ export function initializePortalTool(view) {
             alert("Inloggen geannuleerd of mislukt.");
             loginBtn.innerText = "Inloggen";
         }
+    }); // <-- HIER STOND HET FOUTJE, DE EVENT LISTENER IS NU NETJES GESLOTEN!
 
     // --- WEBMAP KIEZER LOGICA ---
 
@@ -133,7 +134,7 @@ export function initializePortalTool(view) {
                 const div = document.createElement("div");
                 div.className = "list-item";
                 div.innerHTML = `<strong>${item.title}</strong><br><small style="color:gray;">Eigenaar: ${item.owner}</small>`;
-                div.onclick = () => renderWebMap(item.id, item.title); // Geef ook de titel mee!
+                div.onclick = () => renderWebMap(item.id, item.title); 
                 listContainer.appendChild(div);
             });
 
