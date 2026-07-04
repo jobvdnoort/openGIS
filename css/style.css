@@ -182,3 +182,36 @@ hr {
 .eye-btn:hover {
     transform: scale(1.1); /* Maakt het oogje heel subtiel iets groter als je erover zweeft */
 }
+
+/* --- Nieuwe stijlen voor uitklapbare groepen --- */
+.layer-wrapper {
+    display: flex;
+    flex-direction: column;
+}
+
+.layer-title-box {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.chevron-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    color: #666;
+    transition: transform 0.2s ease;
+}
+
+.chevron-spacer {
+    width: 16px; /* Zelfde breedte als de chevron SVG */
+}
+
+.sublayers-container {
+    margin-left: 20px;
+    padding-left: 10px;
+    border-left: 1px solid #ddd;
+}
