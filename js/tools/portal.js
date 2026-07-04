@@ -64,19 +64,18 @@ export function initializePortalTool(view) {
         try {
             loginBtn.innerText = "Inloggen...";
 
-            // 1. Configureer de inloggegevens inclusief callback
+            // 1. Configureer de inloggegevens ZONDER pop-up
             const info = new OAuthInfo({
                 appId: appIdValue,
                 portalUrl: portalUrl,
-                popup: true,
-                popupCallbackUrl: "https://jobvdnoort.github.io/openGIS/oauth-callback.html"
+                popup: false // <-- DIT IS DE MAGISCHE KNOP
             });
             esriId.registerOAuthInfos([info]);
 
-            // 2. Laat het Portal object zelf het inloggen en de token-servers afhandelen!
+            // 2. Laat het Portal object het inloggen afhandelen
             currentPortal = new Portal({ 
                 url: portalUrl, 
-                authMode: "immediate" // Dit triggert de pop-up op de juiste manier
+                authMode: "immediate" 
             });
             
             // Wacht tot de portal geladen (en dus ingelogd) is
