@@ -17,9 +17,10 @@
         } catch (error) {
           console.error("Fout tijdens callback:", error);
         } finally {
-          // Zorg dat hij ALTIJD afsluit, ongeacht wat er gebeurt
-          window.close();
-        }
+         // WACHT 500 milliseconden (0.5 sec) zodat de hoofdapp de tijd heeft om het event te vangen, sluit daarna af.
+        setTimeout(function() {
+            window.close();
+        }, 500);
       };
     </script>
   </head>
