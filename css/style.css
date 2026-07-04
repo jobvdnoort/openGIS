@@ -215,3 +215,67 @@ hr {
     padding-left: 10px;
     border-left: 1px solid #ddd;
 }
+/* --- Tools Knop Rechtsonder --- */
+.floating-tools-btn {
+    position: absolute;
+    bottom: 25px;
+    right: 25px;
+    background-color: #005e9e;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 30px; /* De afgeronde hoeken! */
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 50;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.floating-tools-btn:hover { 
+    background-color: #004a7c; 
+    transform: scale(1.05);
+}
+
+/* --- Zwevende Toolbar Onderin --- */
+.bottom-toolbar {
+    position: absolute;
+    bottom: 85px; /* Zweeft net boven de tools knop */
+    left: 50%;
+    transform: translateX(-50%); /* Zorgt dat hij perfect in het midden staat */
+    background: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    display: flex;
+    gap: 10px;
+    z-index: 50;
+}
+
+.toolbar-btn {
+    padding: 8px 16px;
+    background: #f4f4f9;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: bold;
+    color: #333;
+    transition: all 0.2s;
+}
+
+.toolbar-btn:hover { 
+    background: #e0e0e0; 
+}
+
+/* Speciale stijl voor de Clear knop */
+.clear-btn { 
+    background: #ffebeb; 
+    color: #d32f2f; 
+    border-color: #ffcdd2; 
+}
+
+.clear-btn:hover { 
+    background: #ffcdd2; 
+}

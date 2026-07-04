@@ -3,6 +3,7 @@ import { initializeMap } from './map.js';
 
 // Importeer de nieuwe portal tool
 import { initializePortalTool } from './tools/portal.js';
+import { setupMeasurementTool } from "./tools/measurement.js";
 
 function startApp() {
     console.log("App is aan het opstarten...");
@@ -13,6 +14,9 @@ function startApp() {
         
         // Start de portaal-tool en geef de kaart-view mee
         initializePortalTool(view);
+        
+        // Activeer de Tools/Measurement knoppen!
+        setupMeasurementTool(view);
         
     }).catch(error => {
         console.error("Fout bij het laden van de kaart: ", error);
