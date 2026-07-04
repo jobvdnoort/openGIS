@@ -64,6 +64,7 @@ export function initializePortalTool(view) {
         try {
             loginBtn.innerText = "Inloggen...";
 
+            // 1. Configureer de inloggegevens
             const info = new OAuthInfo({
                 appId: appIdValue,
                 portalUrl: portalUrl,
@@ -72,22 +73,25 @@ export function initializePortalTool(view) {
             });
             esriId.registerOAuthInfos([info]);
 
-            currentPortal = new Portal({ url: portalUrl, authMode: "immediate" });
+            // 2. STAP TOEGEVOEGD: Forceer de app om expliciet te wachten op het token uit de pop-up
+            await esriId.getCredential(portalUrl);
+
+            // 3. Pas áls we de credentials hebben, maken we verbinding met het Portaal
+            currentPortal = new Portal({ url: portalUrl });
             await currentPortal.load();
             
-            // Inloggen gelukt!
-            loginPanel.style.display = "none"; // Verberg inlogblok
-            profileWidget.style.display = "block"; // Toon Avatar
+            // Inloggen gelukt! Menu ombouwen:
+            loginPanel.style.display = "none"; 
+            profileWidget.style.display = "block"; 
             userNameDisplay.innerText = currentPortal.user.fullName || currentPortal.user.username;
 
             userGroups = await currentPortal.user.fetchGroups();
 
         } catch (error) {
-            console.error("Fout bij inloggen:", error);
+            console.error("Fout bij inloggen of ophalen token:", error);
             alert("Inloggen geannuleerd of mislukt.");
             loginBtn.innerText = "Inloggen";
         }
-    });
 
     // --- WEBMAP KIEZER LOGICA ---
 
