@@ -237,7 +237,28 @@ hr {
     background-color: #004a7c; 
     transform: scale(1.05);
 }
+/* --- Tools Knop Rechtsonder --- */
+.floating-tools-btn {
+    position: absolute;
+    bottom: 25px;
+    right: 25px;
+    background-color: #005e9e;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 30px; /* De afgeronde hoeken! */
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    z-index: 50; /* Zorgt dat hij BOVEN de kaart zweeft */
+    transition: background 0.2s, transform 0.1s;
+}
 
+.floating-tools-btn:hover { 
+    background-color: #004a7c; 
+    transform: scale(1.05);
+}
 /* --- Zwevende Toolbar Onderin --- */
 .bottom-toolbar {
     position: absolute;
