@@ -28,87 +28,85 @@ export function initializePortalTool(view) {
     let currentPortal = null;
     let userGroups = [];
 
-    // --- GEHEUGEN (Local Storage) CHECK ---
+    // --- 1. GEHEUGEN OPHALEN ---
     const savedPortalUrl = localStorage.getItem("openGis_portalUrl") || "https://gisportal-test.boskalis.com/portal";
     const savedAppId = localStorage.getItem("openGis_appId") || "";
 
     portalInput.value = savedPortalUrl;
     if (savedAppId) appIdInput.value = savedAppId;
 
-    // --- HERBRUIKBARE INLOG FUNCTIE ---
-    async function performLogin(portalUrl, appIdValue, isAutoLogin = false) {
-        try {
-            if (!isAutoLogin) loginBtn.innerText = "Inloggen...";
+    // --- 2. DIRECT AUTO-LOGIN CHECKEN BIJ OPSTARTEN ---
+    // Als we een App ID hebben, registreren we dit onmiddellijk, zodat Esri een eventuele redirect-code in de URL direct snapt.
+    if (savedAppId && savedPortalUrl) {
+        const info = new OAuthInfo({
+            appId: savedAppId,
+            portalUrl: savedPortalUrl,
+            popup: false 
+        });
+        esriId.registerOAuthInfos([info]);
 
-            // 1. Bouw altijd eerst de OAuthInfo op (essentieel zodat de IdentityManager weet wie de app is)
-            const info = new OAuthInfo({
-                appId: appIdValue,
-                portalUrl: portalUrl,
-                popup: false 
+        // Check direct of de gebruiker al is ingelogd (of net terugkomt van de login pagina)
+        esriId.checkSignInStatus(savedPortalUrl)
+            .then(() => {
+                console.log("Inlogsessie gevonden! UI opbouwen...");
+                loadPortalAndUI(savedPortalUrl);
+            })
+            .catch(() => {
+                console.log("Geen inlogsessie actief. Wachten op handmatige login.");
             });
-            esriId.registerOAuthInfos([info]);
+    }
 
-            // 2. Maak verbinding met het Portaal
+    // --- 3. CENTRALE FUNCTIE: UI OPBOUWEN NA SUCCESVOLLE LOGIN ---
+    async function loadPortalAndUI(portalUrl) {
+        try {
             currentPortal = new Portal({ url: portalUrl });
-            
-            if (!isAutoLogin) {
-                // Handmatige klik: dwing inloggen en redirect af
-                currentPortal.authMode = "immediate";
-            } else {
-                // Automatische check bij opstarten: kijk geruisloos of we al een token hebben
-                currentPortal.authMode = "auto";
-            }
-            
-            // Laad de portal. Als er een token in de URL zit, pakt Esri deze nu automatisch op!
             await currentPortal.load(); 
             
-            // 3. Succes! Verberg login scherm, toon profiel
+            // Verberg inlogblok, toon het profiel-bolletje
             loginPanel.style.display = "none"; 
             profileWidget.style.display = "block"; 
             userNameDisplay.innerText = currentPortal.user.fullName || currentPortal.user.username;
 
             userGroups = await currentPortal.user.fetchGroups();
-
         } catch (error) {
-            // Foutafhandeling
-            if (!isAutoLogin) {
-                console.error("Inloggen handmatig mislukt:", error);
-                alert("Inloggen geannuleerd of mislukt. Controleer je URL en App-ID.");
-                loginBtn.innerText = "Inloggen";
-            } else {
-                // Auto-login faalt stil als er (nog) geen token in de URL zit. Dat is prima, dan moet men klikken.
-                console.log("Geen actieve inlogsessie of token gevonden in de URL bij opstarten.");
-            }
+            console.error("Fout bij laden van Portal data:", error);
         }
     }
 
-    // --- RECHTSTREEKSE AUTO-LOGIN BIJ OPSTARTEN ---
-    // Zodra de pagina laadt, controleren we direct of we een opgeslagen App-ID hebben én of er inlogparameters 
-    // (zoals '?code=...' of '#access_token=...') in de URL aanwezig zijn van de redirect.
-    const hasOAuthParams = window.location.search.includes("code=") || 
-                           window.location.search.includes("oauth") || 
-                           window.location.hash.includes("access_token=");
-
-    if (savedAppId && hasOAuthParams) {
-        console.log("Inlog-tokens gedetecteerd in URL. Auto-login starten...");
-        performLogin(savedPortalUrl, savedAppId, true);
-    }
-
-    // --- HANDMATIG INLOGGEN (BUTTON KLIK) ---
+    // --- 4. HANDMATIG INLOGGEN (BUTTON KLIK) ---
     loginBtn.addEventListener("click", () => {
         const portalUrl = portalInput.value.trim();
         const appIdValue = appIdInput.value.trim();
 
         if (!portalUrl || !appIdValue) return alert("Vul URL en App-ID in.");
 
-        // Sla gegevens lokaal op zodat ze de 'redirect' overleven
+        // Sla direct op zodat we het onthouden als we weggestuurd worden
         localStorage.setItem("openGis_portalUrl", portalUrl);
         localStorage.setItem("openGis_appId", appIdValue);
 
-        performLogin(portalUrl, appIdValue, false);
+        loginBtn.innerText = "Bezig met doorsturen...";
+
+        // Registreer de configuratie (nodig als dit de eerste keer is)
+        const info = new OAuthInfo({
+            appId: appIdValue,
+            portalUrl: portalUrl,
+            popup: false 
+        });
+        esriId.registerOAuthInfos([info]);
+
+        // Forceer de inlog/redirect procedure
+        esriId.getCredential(portalUrl)
+            .then(() => {
+                // Mocht de inlog op miraculeuze wijze lokaal slagen zonder redirect:
+                loadPortalAndUI(portalUrl);
+            })
+            .catch((error) => {
+                console.error("Inlogprocedure afgebroken:", error);
+                loginBtn.innerText = "Inloggen";
+            });
     });
 
-    // --- INTERFACE KLIK ACTIES ---
+    // --- 5. INTERFACE KLIK ACTIES ---
     userAvatar.addEventListener("click", () => {
         profileDropdown.style.display = profileDropdown.style.display === "none" ? "block" : "none";
     });
@@ -125,11 +123,11 @@ export function initializePortalTool(view) {
 
     logoutBtn.addEventListener("click", () => {
         esriId.destroyCredentials(); 
-        localStorage.removeItem("openGis_appId"); // Wis het ID bij uitloggen voor een schone lei
+        // We laten het App-ID in localStorage staan, puur voor gebruiksgemak bij de volgende login
         window.location.reload(); 
     });
 
-    // --- WEBMAP KIEZER LOGICA ---
+    // --- 6. WEBMAP KIEZER LOGICA ---
     function showGroups() {
         panelTitle.innerText = "Mijn Groepen";
         backBtn.style.display = "none";
