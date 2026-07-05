@@ -1,7 +1,6 @@
 // js/tools/selection.js
 import GraphicsLayer from "https://js.arcgis.com/4.29/@arcgis/core/layers/GraphicsLayer.js";
 import Draw from "https://js.arcgis.com/4.29/@arcgis/core/views/draw/Draw.js";
-import { fromJSON } from "https://js.arcgis.com/4.29/@arcgis/core/geometry/geometryEngine.js";
 
 export class Selection {
     constructor(view) {
