@@ -5,6 +5,7 @@ import { initializeMap } from './map.js';
 // Importeer de nieuwe portal tools
 import { initializePortalTool } from './tools/portal.js';
 import { setupMeasurementTool } from "./tools/measurement.js";
+import { Selection } from './tools/selection.js';
 
 // 1. Vertel ArcGIS dat alle widgets in het Nederlands moeten!
 esriConfig.locale = "nl";
@@ -16,8 +17,11 @@ function startApp() {
     view.when(() => {
         console.log("Kaart is succesvol geladen!");
         
-        // Start de portaal-tool en geef de kaart-view mee
-        initializePortalTool(view);
+        // Initialiseer de nieuwe Selection tool
+        const selectionTool = new Selection(view);
+
+        // Start de portaal-tool en geef de kaart-view en selection tool mee
+        initializePortalTool(view, selectionTool);
         
         // Activeer de Tools/Measurement knoppen!
         setupMeasurementTool(view);

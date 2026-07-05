@@ -348,3 +348,42 @@ calcite-button {
     0% { transform: rotate(0deg); }
     100% { transform: rotate(360deg); }
 }
+
+/* --- Stijlen voor Lagenlijst Menu (drie puntjes) --- */
+.layer-menu-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+}
+
+.layer-menu-btn:hover {
+    color: #005e9e;
+}
+
+.layer-menu {
+    position: absolute;
+    background: white;
+    border-radius: 6px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.15);
+    z-index: 60; /* Moet boven de lagenlijst zelf uitkomen */
+    padding: 5px 0;
+    width: 180px;
+}
+
+.layer-menu-item {
+    padding: 8px 12px;
+    font-size: 14px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.layer-menu-item:hover {
+    background: #f0f0f0;
+}

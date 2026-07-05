@@ -5,7 +5,7 @@ import esriId from "https://js.arcgis.com/4.29/@arcgis/core/identity/IdentityMan
 // 1. Oude Esri LayerList import verwijderd en vervangen door jouw eigen module:
 import { buildBeautifulLayerList } from "./layerList.js";
 
-export function initializePortalTool(view) {
+export function initializePortalTool(view, selectionTool) {
     // UI Elementen
     const loginPanel = document.getElementById("loginPanel");
     const loginBtn = document.getElementById("loginBtn");
@@ -200,7 +200,7 @@ export function initializePortalTool(view) {
         // 2. Haal Esri rommel weg en roep jouw custom module aan
         view.when(() => {
             view.ui.empty("top-left"); 
-            buildBeautifulLayerList(view);
+            buildBeautifulLayerList(view, selectionTool);
         });
     }
 }
